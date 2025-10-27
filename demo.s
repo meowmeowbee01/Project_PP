@@ -77,6 +77,7 @@ enable_rendering:
   sta $2001
 
 forever:
+
   jmp forever
 
 nmi:
@@ -85,7 +86,7 @@ nmi:
 @loop:	lda hello, x 	; Load the hello message into SPR-RAM
   sta $2004
   inx
-  cpx #$5c
+  cpx #$28      ;stupid to choose 92 since there's only 40 bytes possible a typo
   bne @loop
   rti
 
@@ -112,7 +113,7 @@ palettes:
   .byte $0f, $00, $00, $00
 
   ; Sprite Palette
-  .byte $0f, $20, $00, $00
+  .byte $0f, $26, $00, $00
   .byte $0f, $00, $00, $00
   .byte $0f, $00, $00, $00
   .byte $0f, $00, $00, $00
