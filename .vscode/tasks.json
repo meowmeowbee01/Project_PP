@@ -5,7 +5,12 @@
 			"label": "Assemble and Link NES",
 			"type": "shell",
 			"command": "C:\\cc65\\bin\\ca65.exe",
-			"args": ["demo.s", "-g", "-o", "demo.o"],
+			"args": [
+				"${fileBasename}",
+				"-g",
+				"-o",
+				"${fileBasenameNoExtension}.o"
+			],
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -20,10 +25,10 @@
 				"-t",
 				"nes",
 				"-o",
-				"demo.nes",
-				"demo.o",
+				"${fileBasenameNoExtension}.nes",
+				"${fileBasenameNoExtension}.o",
 				"--dbgfile",
-				"demo.dbg"
+				"${fileBasenameNoExtension}.dbg"
 			],
 			"group": "build",
 			"dependsOn": "Assemble and Link NES",
