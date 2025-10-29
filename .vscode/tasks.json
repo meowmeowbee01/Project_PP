@@ -9,7 +9,7 @@
 				"${fileBasename}",
 				"-g",
 				"-o",
-				"${fileBasenameNoExtension}.o"
+				"build\\${fileBasenameNoExtension}.o"
 			],
 			"group": {
 				"kind": "build",
@@ -25,10 +25,10 @@
 				"-t",
 				"nes",
 				"-o",
-				"${fileBasenameNoExtension}.nes",
-				"${fileBasenameNoExtension}.o",
+				"build\\${fileBasenameNoExtension}.nes",
+				"build\\${fileBasenameNoExtension}.o",
 				"--dbgfile",
-				"${fileBasenameNoExtension}.dbg"
+				"build\\${fileBasenameNoExtension}.dbg"
 			],
 			"group": "build",
 			"dependsOn": "Assemble and Link NES",
