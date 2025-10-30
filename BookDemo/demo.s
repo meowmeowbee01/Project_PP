@@ -30,8 +30,15 @@
 ; if it's empty
 .segment "ZEROPAGE"
   paddr: .res 2     ;pointer to 16 bit address
-  time: .res 1      
+  time: .res 2    
   lasttime: .res 1 
+  SEED0: .res 2
+  SEED2: .res 2 
+  level: .res 1
+  animate: .res 1
+  enemydata: .res 20
+  enemycooldown: .res 1
+  temp: .res 10
 .segment "OAM"
   oam: .res 256
 
@@ -109,7 +116,9 @@ irq: ;currently nothing yet for the irq
   pha 
 
   inc time  ;increment time tick counter
-
+  bne :+
+    inc time+1
+  :
   bit PPU_STATUS ;transfer oam data using dma
   lda #>oam
   sta SPRITE_DMA
@@ -200,6 +209,22 @@ irq: ;currently nothing yet for the irq
     lda gamepad
     and #PAD_A|PAD_B|PAD_START|PAD_SELECT
     beq titleloop
+    
+  ;dont ask questions about this part of the code (only god knows why)
+  lda time
+  sta SEED0
+  lda time+1
+  sta SEED0+1
+  jsr randomize
+  sbc time+1
+  sta SEED2
+  jsr randomize
+  sbc time
+  sta SEED2+1
+
+  lda #1    ;set current level to 1
+  sta level
+  jsr setup_level 
 
   jsr display_game_screen 
   mainloop:
@@ -211,6 +236,8 @@ irq: ;currently nothing yet for the irq
     sta lasttime  ;store the current time in the last time 
     jsr player_actions
     jsr move_player_bullet
+    jsr spawn_enemies
+    jsr move_enemies
     jmp mainloop
       
 .endproc
@@ -357,6 +384,202 @@ irq: ;currently nothing yet for the irq
   @exit:    
   rts   ;return from subroutine
 .endproc
+
+.proc randomize ;easier rand function
+  lda SEED0     ;load seed 0
+  lsr           ;logical shift right
+  rol SEED0+1   ;rotate left the low byte
+  bcc @noeor    ;really some random shit at this point
+  eor #$B4      ;yes xor it with the most random number
+  @noeor:       ;i dont even know at this point
+  sta SEED0     ;store the new a in the seed
+  eor SEED0+1   ;another xor for more randomness
+  rts
+.endproc
+
+.proc rand      ;better rand function
+  jsr rand64k   ;basically do a shit ton of shifts and xor....
+  jsr rand32k
+  lda SEED0+1
+  eor SEED2+1
+  tay
+  lda SEED0
+  eor SEED2
+  rts
+.endproc
+
+.proc rand64k
+  lda SEED0+1
+  asl
+  asl
+  eor SEED0+1
+  asl
+  eor SEED0+1
+  asl
+  asl
+  eor SEED0+1
+  asl
+  rol SEED0
+  rol SEED0+1
+  rts
+.endproc
+
+.proc rand32k
+  lda SEED2+1
+  asl
+  eor SEED2+1
+  asl
+  asl
+  ror SEED2
+  rol SEED2+1
+  rts
+.endproc
+
+.proc setup_level
+  lda #0
+  ldx #0
+  @loop:  ;clears enemy data
+    sta enemydata,x
+    inx
+    cpx #20
+    bne @loop
+  lda #20           ;set initial enemy cooldown
+  sta enemycooldown 
+  rts
+.endproc
+
+.proc spawn_enemies
+  ldx enemycooldown ;get the enemy cooldown
+  dex               ;decrement it
+  stx enemycooldown ;store it
+
+  cpx #0  ;see if the cooldown hit 0
+  beq :+  ;if it hasnt, return from the subroutine
+  rts
+  : ;if it has reached 0
+
+  ldx #1            ;set a short cooldown (if our random value doesnt make an enemy appear, it will try again in a second)
+  stx enemycooldown
+  lda level         ;get the current level
+  clc               ;clear the carry
+  adc #1            ;add 1 to a
+  asl               ;multiply by 4
+  asl
+  sta temp          ;save our value
+  jsr rand          ;get new random value
+  tay               ;put it in the y register
+  cpy temp          ;compare it to the old value
+  bcc :+            ;if it is bigger than our calculated value
+  rts               ;return from subroutine
+  :                 ;else continue (why tf would they do this)
+
+  ldx #20           ;set new cooldown
+  stx enemycooldown
+
+  ldy #0
+  @loop:            ;loop through all enemies to find one that isnt spawned yet
+    lda enemydata,y ;if all 10 enemies are already on the screen, exit
+    beq :+
+    iny
+    cpy #10
+    bne @loop
+  rts
+  :
+
+  lda #1          ;mark the enemy as in use
+  sta enemydata,y
+
+  tya     ;transfer current sprite index to a
+  asl     ;multiply is by 16
+  asl     ;because each enemy takes up 4 sprites
+  asl     ;and each sprite takes 4 bytes
+  asl
+  clc
+  adc #20 ;add 20 because the first 20 bytes are for the ship and the bullet
+  tax     ;store it in x
+
+  lda #0      ;set the y position as 0
+  sta oam,x
+  sta oam+4,x
+  lda #8
+  sta oam+8,x
+  sta oam+12,x
+
+  lda #8        ;set the index number of the sprite
+  sta oam+1,x
+  clc
+  adc #1
+  sta oam+5,x
+  adc #1
+  sta oam+9,x
+  adc #1
+  sta oam+13,x
+
+  lda #%00000000    ;set the sprite attributes
+  sta oam+2,x
+  sta oam+6,x
+  sta oam+10,x
+  sta oam+14,x
+
+  jsr rand        ;set the x coord as a random value
+  and #%11110000
+  clc
+  adc #48
+  sta oam+3,x
+  sta oam+11,x
+  clc
+  adc #8
+  sta oam+7,x
+  sta oam+15,x
+
+  rts
+.endproc
+
+.proc move_enemies
+  ldy #0
+  lda #0
+  @loop:
+    lda enemydata,y
+    beq @skip       ;check if the enemy is on the screen  
+
+    tya   ;calculate the position in the oam table
+    asl   ;once again multiply by 16 because
+    asl   ;1 enemy = 4 sprites
+    asl   ;1 sprite = 4 bytes
+    asl
+    clc
+    adc #20 ;add 20 to skip the first 5 sprites
+    tax     ;store the position in x
+
+    lda oam,x         ;load current y position
+    clc               ;clear the carry
+    adc #1            ;move it down by 1
+    cmp #196        ;check if it hit the bottom
+    bcc @nohitbottom  ;if it did not, go to next section
+
+    lda #255    ;put all the addresses at the maximum (to move it out the screen)
+    sta oam,x
+    sta oam+4,x
+    sta oam+8,x
+    sta oam+12,x
+    lda #0
+    sta enemydata,y ;mark the enemy not used in the enemydata
+    jmp @skip       ;go to the end of the loop
+
+    @nohitbottom:   ;if it did not hit the bottom
+    sta oam,x       ;store the new y coord
+    sta oam+4,x
+    clc
+    adc #8
+    sta oam+8,x
+    sta oam+12,x
+    @skip:
+    iny       ;increment the enemy counter for the loop
+    cpy #10   ;check if we have gone through all the enemies
+    bne @loop ;if we haven't gona through all the enemies yet loop again
+  rts
+.endproc
+
 title_text:
   .byte "M E G A B L A S T",0
 
