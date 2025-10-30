@@ -7,7 +7,7 @@
 .endmacro
 
 .macro assign_16i dest, value
-    lda #<value ;puts first the low byte then high byte in destination
+    lda #<value ;puts first the low byte then high byte in destination (+1)
     sta dest+0
     lda #>value
     sta dest+1
