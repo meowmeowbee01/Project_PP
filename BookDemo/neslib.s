@@ -72,6 +72,19 @@ ATTRIBUTE_TABLE_1_ADDRESS = $27C0
     ppu_ctl1: .res 1 
     gamepad: .res 1 
     text_address: .res 2
+
+    ;object 1
+    cx1: .res 1 ;x coord
+    cy1: .res 1 ;y coord
+    cw1: .res 1 ;width
+    ch1: .res 1 ;height
+
+    ;object 2
+    cx2: .res 1 ;x coord
+    cy2: .res 1 ;y coord
+    cw2: .res 1 ;width
+    ch2: .res 1 ;height
+
     .include "macro.s"
 
 .segment "CODE"
@@ -165,4 +178,63 @@ ATTRIBUTE_TABLE_1_ADDRESS = $27C0
             jmp loop                ;loop again
         exit:
             rts                     ;return from subroutine
+    .endproc
+
+    .proc collision_test
+        clc
+        lda cx1 ;get object 1 x
+        adc cw1 ;add the width
+        cmp cx2 ;compare to object 2 x coord
+        bcc @exit   ;if the second coord is to the right of it (bigger than or equal) there's no collision
+
+        
+        clc         ;we now do the inverse
+        lda cx2     ;get object 2 x
+        adc cw2     ;add width to it
+        cmp cx1     ;compare it to object 1 x coord
+        bcc @exit   ;if object 1 is to the right of that coord, there's no collision
+
+        lda cy1     ;no we do the same for the y coords
+        adc ch1
+        cmp cy2
+        bcc @exit
+
+        clc
+        lda cy2
+        adc ch2
+        cmp cy1
+        bcc @exit
+
+        sec ;set carry flag as there is a collision
+        rts ;return
+        @exit:
+        clc ;clear carry flag as there is no collision
+        rts ;return
+    .endproc
+
+    .proc dec99_to_bytes
+        ;x will extract the value x0 (x * 10)
+        ;a will contain the value 0a (a * 1)
+        ldx #0
+        cmp #50     ;compare a to 50
+        bcc try20   ;if a is smaller than 50, go to 20 check
+        sbc #50     ;subtract 50
+        ldx #5      ;load 5 in x
+        bne try20   ;if its not 0, go to 20 check
+
+        div20:
+            inx         ;add 2 to x
+            inx
+            sbc #20     ;remove 20
+
+        try20:
+            cmp #20     ;compare to 20
+            bcs div20   ;if it's bigger or equal to 20 go to remove 20
+        try10:
+            cmp #10     ;compare to 10
+            bcc @finished   ;if its smaller than 10 calculation is finished
+            sbc #10         ;otherwise, remove 10 and increment x
+            inx
+        @finished:
+        rts
     .endproc

@@ -39,6 +39,9 @@
   enemydata: .res 20
   enemycooldown: .res 1
   temp: .res 10
+  score: .res 3
+  update: .res 1 
+  
 .segment "OAM"
   oam: .res 256
 
@@ -108,6 +111,7 @@ irq: ;currently nothing yet for the irq
 
   jmp main
 .endproc
+
 .proc nmi
   pha  ;store registers and accumulator
   txa  ;on stack before changing it
@@ -131,6 +135,18 @@ irq: ;currently nothing yet for the irq
     inx
     cpx #$20
     bcc @loop
+
+    lda #%00000001      ;check if the score needs to be updates
+    bit update          ;and the update value with the accumulator (zero flag set if bit is correct)
+    beq @skipscore      ;if the value of that and is 0, skip the score
+
+    jsr display_score   ;display the score
+
+    lda #%11111110      ;disable the update score flag
+    and update          
+    sta update
+
+  @skipscore:
 
   lda #$00  ;reset the address
   sta PPU_VRAM_ADDRESS1
@@ -225,6 +241,11 @@ irq: ;currently nothing yet for the irq
   lda #1    ;set current level to 1
   sta level
   jsr setup_level 
+
+  lda #0        ;reset score
+  sta score
+  sta score+1
+  sta score+2
 
   jsr display_game_screen 
   mainloop:
@@ -536,11 +557,24 @@ irq: ;currently nothing yet for the irq
 .endproc
 
 .proc move_enemies
+
+  ;store the bullet's information
+  lda oam+16 
+  sta cy1
+  lda oam+19
+  sta cx1
+  lda #4
+  sta ch1
+  lda #1
+  sta cw1
+
   ldy #0
   lda #0
   @loop:
     lda enemydata,y
-    beq @skip       ;check if the enemy is on the screen  
+    bne :+      ;check if the enemy is on the screen
+      jmp @skip
+    :         
 
     tya   ;calculate the position in the oam table
     asl   ;once again multiply by 16 because
@@ -562,8 +596,21 @@ irq: ;currently nothing yet for the irq
     sta oam+4,x
     sta oam+8,x
     sta oam+12,x
+
     lda #0
     sta enemydata,y ;mark the enemy not used in the enemydata
+
+    clc           ;i will choke someone
+    lda score     ;check if score not 0
+    adc score+1
+    adc score+2
+    bne :+
+    jmp @skip
+    :
+
+    lda #1              ;remove 10 not 1 because we add a 0 at the end for bigger numbers(the 0 never changes)
+    jsr subtract_score  ;subtract score
+
     jmp @skip       ;go to the end of the loop
 
     @nohitbottom:   ;if it did not hit the bottom
@@ -573,13 +620,146 @@ irq: ;currently nothing yet for the irq
     adc #8
     sta oam+8,x
     sta oam+12,x
+    
+    lda oam+16    ;check if the bullet is on the screen
+    cmp #$FF
+    beq @skip
+
+    lda oam,x ;store the current enemy location
+    sta cy2
+    lda oam+3,x
+    sta cx2
+    lda #14
+    sta cw2
+    sta ch2
+
+    jsr collision_test  ;do the collision test with current enemy
+    bcc @skip           ;if carry flag is clear (no collision), skip the rest
+    lda #$ff            ;else move enemies off the map
+    sta oam+16
+    sta oam,x
+    sta oam+4,x
+    sta oam+8,x
+    sta oam+12,x
+
+    lda #0
+    sta enemydata,y     ;and mark it as deleted
+
+    lda #2        ;add 20 (not 2 because we add a 0 to the end to make the numbers look bigger )to the score
+    jsr add_score ;yes
     @skip:
     iny       ;increment the enemy counter for the loop
     cpy #10   ;check if we have gone through all the enemies
-    bne @loop ;if we haven't gona through all the enemies yet loop again
+    beq :+
+      jmp @loop
+    :
   rts
 .endproc
 
+.proc add_score 
+  clc ;each byte is used  to represent 2 numbers of the score so if the score is 543299 then the first byte stores 99, the second one 32 and the last one 54
+  adc score ;adds the value in a to the current score
+  sta score 
+  cmp #99     ;compare to 99
+  bcc @skip   ;if it's smaller or equal to 99 skip the rest
+
+  sec         ;i swear, this carry flag is driving me insane
+  sbc #100  ;subtract 100 from this score
+  sta score   ;store the new score
+
+  inc score+1 ;increment the next score
+  lda score+1 ;get the new current score
+  cmp #99     ;once again compare to 99
+  bcc @skip   ;if it's less or equal, skip the rest
+
+  sec         ;-_-
+  sbc #100  ;remove 100 from the current a value
+  sta score+1 ;update that part
+
+  inc score+2 ;increment last part of the score
+  lda score+2 ;get the numbers on position of x: xx0000 (so the 10k's, and 100k's)
+  cmp #99     ;compare to 99
+  bcc @skip   ;if its less or equal to 99, skip the rest
+
+  sec         ;https://youtu.be/dQw4w9WgXcQ?si=FEQCmkhkzpgXjq91 for explanation
+  sbc #100  ;remove 100
+  sta score+2 ;store it again (we do nothing else since we have no extra bytes to store the number)
+
+  @skip:
+  lda #%000000001
+  ora update
+  sta update ;set the updatescore flag to 1
+  rts
+.endproc
+
+.proc subtract_score ;if you dont understand this part, you're stupid and you k.. go to the add part to try and understand it
+  sta temp ;save point penalty
+
+  sec       ;d,qjhdkjzlfnzzl
+  lda score ;get current score
+  sbc temp  ;apply the point penalty
+  sta score ;store new value
+  bcs @skip ;jump if the number is positive
+
+  clc       ;LKQJHDZZZZZZZjkDQHLZHDJKQLHDq
+  adc #100  ;add 100 to the score
+  sta score   ;store new score
+
+  dec score+1 ;decrement the second score byte
+  bcs @skip   ;if that's positive, skip the rest
+
+  clc         ; i will be lowtiergod
+  lda score+1 ;get current second byte of score
+  adc #100  ;add 100 the value so it makes sense
+  sta score+1 ;store new second byte of score
+
+  dec score+2 ;decrement the last byte
+  bcs @skip   ;if its positive skip
+
+  lda #0      ;reset score entirely
+  sta score+2
+  sta score+1
+  sta score
+
+  @skip:
+  lda #%00000001  
+  ora update
+  sta update    ;set update score flag
+  rts
+.endproc
+
+.proc display_score
+  vram_set_address (NAME_TABLE_0_ADDRESS + 27 * 32 + 6) ;the location of the score
+  lda score+2         ;get the 2 decimal numbers from our score (xa0000)
+  jsr dec99_to_bytes
+  stx temp            ;store the numbers temporarily
+  sta temp+1
+
+  lda score+1         ;get middle 2 decimal numbers from our score (00xa00)
+  jsr dec99_to_bytes  ;get the 2 seperate number
+  stx temp+2          ;store the extracted values
+  sta temp+3
+
+  lda score           ;get the lower 2 decimal numbers (0000xa)
+  jsr dec99_to_bytes  ;get the 2 seperate numbers
+  stx temp+4          ;store the extracted values
+  sta temp+5
+
+  ldx #0
+  @loop:        ;loop over all the numbers
+    lda temp,x  ;get the current number
+    clc         ;I hope jesus finds their way to me
+    adc #48     ;add 48 since 48 is the starting pos of our tile characters
+    sta PPU_VRAM_IO   ;write it to ppu register
+    inx         ;increment x
+    cpx #6      ;check if we have looped 6 times
+    bne @loop
+
+  lda #48         ;write a trailing 0 for fun
+  sta PPU_VRAM_IO 
+  vram_clear_address  ;clear address
+  rts
+.endproc
 title_text:
   .byte "M E G A B L A S T",0
 
