@@ -41,6 +41,8 @@
   temp: .res 10
   score: .res 3
   update: .res 1 
+  lives: .res 1
+  player_dead: .res 1
   
 .segment "OAM"
   oam: .res 256
@@ -246,6 +248,11 @@ irq: ;currently nothing yet for the irq
   sta score
   sta score+1
   sta score+2
+
+  lda #5      ;load initial and death life values 
+  sta lives
+  lda #0
+  sta player_dead
 
   jsr display_game_screen 
   mainloop:
@@ -620,7 +627,47 @@ irq: ;currently nothing yet for the irq
     adc #8
     sta oam+8,x
     sta oam+12,x
+
+    lda player_dead         ;check that the play aint already dead
+    cmp #0                  
+    bne @notlevelwithplayer ;jump to death screen or sum
+
+    lda oam,x       ;get enemy y coord
+    clc             ;DJIQLUJDS
+    adc #14         ;add enemy height
+    cmp #204      ;compare to player y
+    bcc @notlevelwithplayer  ;skip rest of collision checking if enemy is still above player
+
+    lda oam+3   ;load player x coord
+    clc         ;\(^-^)/
+    adc #12     ;add player width
+    cmp oam+3,x ;compare to enemy x coord
+    bcc @notlevelwithplayer ;if enemy is to the right of that coord skip the rest (no collision)
+
+    lda oam+3,x ;same check but inversed
+    clc
+    adc #14
+    cmp oam+3
+    bcc @notlevelwithplayer ;jump if no collision
     
+    dec lives ;at this point there is a collision and we decrement the current lives --------------------------------------------------------------------------------does the player die after 1 hit?
+    lda #%00000100  ;set current flag for lives to be displayed
+    ora update      
+    sta update
+    lda #1            ;marks player as dead
+    sta player_dead
+
+    lda #$ff    ;erase the enemy
+    sta oam,x
+    sta oam+4,x
+    sta oam+8,x
+    sta oam+12,x
+    lda #0
+    sta enemydata,y
+    jmp @skip       ;enemy gone so no need to move it further
+
+    @notlevelwithplayer:
+
     lda oam+16    ;check if the bullet is on the screen
     cmp #$FF
     beq @skip
@@ -760,6 +807,58 @@ irq: ;currently nothing yet for the irq
   vram_clear_address  ;clear address
   rts
 .endproc
+
+.proc set_player_shape ;change player pattern table
+  stx oam+1
+  inx
+  stx oam+5
+  inx
+  stx oam+9
+  inx
+  stx oam+13
+  rts
+.endproc
+
+.proc player_actions
+  lda player_dead  ;get if the player is dead
+  beq @continue    ;if he isnt, continue
+
+  cmp #1        ;check current death frame
+  bne @notstep1 ;if it isnt frame 1 jump to next phase of animation
+  ldx #20       ;load 20
+  jsr set_player_shape  ;set the player pattern
+  lda #$00000001
+  sta oam+2
+  sta oam+6
+  sta oam+10
+  sta oam+14
+  jmp @nextstep
+  @notstep1:
+  cmp #5
+  bne @notstep2
+  ldx #24
+  jsr set_player_shape
+  jmp @nextstep
+  @notstep2:
+  cmp #10
+  bne @notstep3
+  ldx #28
+  jsr set_player_shape
+  jmp @nextstep
+  @notstep3:
+  cmp #15
+  bne @notstep4
+  ldx #32
+  jsr set_player_shape
+  jmp @nextstep
+  @notstep4:
+  cmp #20
+  bne @nextstep
+  lda lives
+  cmp #0
+  bne @notgameover
+  rts
+.endproc
 title_text:
   .byte "M E G A B L A S T",0
 
@@ -779,9 +878,10 @@ title_attributes:
     .byte $0F,$00,$10,$30
     ;sprite palette
     .byte $0F,$28,$21,$11
-    .byte $0F,$14,$24,$34
+    .byte $0F,$26,$28,$17
     .byte $0F,$1B,$2B,$3B
     .byte $0F,$12,$22,$32 
+ 
 
   game_screen_mountain:
   .byte 001,002,003,004,001,002,003,004,001,002,003,004,001,002,003,004
