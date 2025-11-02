@@ -27,7 +27,7 @@ PAD_DOWN	= %00100000
 PAD_LEFT	= %01000000
 PAD_RIGHT	= %10000000
 
-
+.segment "OAM"
 .segment "HEADER"
 	INES_MAPPER = 0				; 0 = NROM
 	INES_MIRROR = 0				; 0 = horizontal mirroring, 1 = vertical mirroring
@@ -147,7 +147,7 @@ PAD_RIGHT	= %10000000
 		.byte $0f, $00, $00, $00
 		.byte $0f, $00, $00, $00
 
-.segment "CHARS"	; character memory
+.segment "TILES"	; character memory
 	.byte %11111111	; T (00)
 	.byte %11111111
 	.byte %00011000
