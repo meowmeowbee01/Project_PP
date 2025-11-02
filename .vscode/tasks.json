@@ -4,9 +4,9 @@
 		{
 			"label": "Assemble and Link NES",
 			"type": "shell",
-			"command": "C:\\cc65\\bin\\ca65.exe",
+			"command": "${config:cc65}\\ca65.exe",
 			"args": [
-				"${fileBasename}",
+				"${file}",
 				"-g",
 				"-o",
 				"build\\${fileBasenameNoExtension}.o"
@@ -20,7 +20,7 @@
 		{
 			"label": "Build NES",
 			"type": "shell",
-			"command": "C:\\cc65\\bin\\ld65.exe",
+			"command": "${config:cc65}\\ld65.exe",
 			"args": [
 				"-t",
 				"nes",
