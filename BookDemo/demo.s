@@ -58,6 +58,8 @@
 
 .segment "STARTUP"
 
+.segment "CHARS"
+
 .segment "CODE" ; Main code segment for the program
 
 gameovertext:
