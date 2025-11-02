@@ -238,3 +238,17 @@ ATTRIBUTE_TABLE_1_ADDRESS = $27C0
         @finished:
         rts
     .endproc
+
+    .proc clear_sprites
+        ;
+        lda #255
+        ldx #0
+        clear_oam:
+        sta oam,x
+        inx
+        inx
+        inx
+        inx
+        bne clear_oam
+        rts
+    .endproc

@@ -41,6 +41,7 @@
   temp: .res 10
   score: .res 3
   update: .res 1 
+  highscore: .res 3
   lives: .res 1
   player_dead: .res 1
   
@@ -58,6 +59,9 @@
 .segment "STARTUP"
 
 .segment "CODE" ; Main code segment for the program
+
+gameovertext:
+.byte " G A M E O V E R",0
 
 irq: ;currently nothing yet for the irq
   rti
@@ -115,159 +119,195 @@ irq: ;currently nothing yet for the irq
 .endproc
 
 .proc nmi
-  pha  ;store registers and accumulator
-  txa  ;on stack before changing it
-  pha  
-  tya  
-  pha 
+	; save registers
+	pha
+	txa
+	pha
+	tya
+	pha
 
-  inc time  ;increment time tick counter
-  bne :+
-    inc time+1
-  :
-  bit PPU_STATUS ;transfer oam data using dma
-  lda #>oam
-  sta SPRITE_DMA
+	; increment our time tick counter
+	inc time
+	bne :+
+		inc time+1
+	:
 
-  vram_set_address $3F00
-  ldx #$00
-  @loop: ;transfer the 32 bytes to vram
-    lda palette, x 
+	bit PPU_STATUS
+	; transfer sprite OAM data using DMA
+	lda #>oam
+	sta SPRITE_DMA
+
+	; transfer current palette to PPU
+	vram_set_address $3F00
+	ldx #0 ; transfer the 32 bytes to VRAM
+  @loop:
+    lda palette, x
     sta PPU_VRAM_IO
     inx
-    cpx #$20
+    cpx #32
     bcc @loop
 
-    lda #%00000001      ;check if the score needs to be updates
-    bit update          ;and the update value with the accumulator (zero flag set if bit is correct)
-    beq @skipscore      ;if the value of that and is 0, skip the score
-
-    jsr display_score   ;display the score
-
-    lda #%11111110      ;disable the update score flag
-    and update          
-    sta update
-
+    lda #%00000001 ; has the score updated?
+    bit update
+    beq @skipscore
+      jsr display_score ; display score
+      lda #%11111110 ; reset score update flag
+      and update
+      sta update
   @skipscore:
+    lda #%00000010 ; has the high score updated?
+    bit update
+    beq @skiphighscore
+      jsr display_highscore ; display high score
+      lda #%11111101 ; reset high score update flag
+      and update
+      sta update
+  @skiphighscore:
+    lda #%00000100 ; display the players lives
+    bit update
+    beq @skiplives
+      jsr display_lives
+      lda #%11111011
+      and update
+      sta update
+  @skiplives:
+    lda #%00001000 ; does the game over message need to be displayed?
+    bit update
+    beq @skipgameover
+      vram_set_address (NAME_TABLE_0_ADDRESS + 14 * 32 + 7)
+      assign_16i text_address, gameovertext 
+      jsr write_text
+      lda #%11110111 ; reset game over message update flag
+      and update
+      sta update
+  @skipgameover:
 
-  lda #$00  ;reset the address
-  sta PPU_VRAM_ADDRESS1
-  sta PPU_VRAM_ADDRESS1
-  
-  lda ppu_ctl0    ;get current control variable
-  sta PPU_CONTROL ;write it to the register
-  lda ppu_ctl1    ;get current mask variable
-  sta PPU_MASK    ;write it to the register
+	; write current scroll and control settings
+	lda #0
+	sta PPU_VRAM_ADDRESS1
+	sta PPU_VRAM_ADDRESS1
+	lda ppu_ctl0
+	sta PPU_CONTROL
+	lda ppu_ctl1
+	sta PPU_MASK
 
-  ldx #$00      ;flag the nmi as ready
-  stx nmi_ready
+	; flag PPU update complete
+	ldx #0
+	stx nmi_ready
 
-  pla ;store the original values
-  tay ;back to the registers
-  pla 
-  tax 
-  pla 
-  rti
+	; restore registers and return
+	pla
+	tay
+	pla
+	tax
+	pla
+	rti
 .endproc
 
 .proc main
-  ldx #0
-  paletteloop: ;copy the palette from the rom into the ram area for it
-    lda default_palette, x  ;load it from the rom
-    sta palette, x  ;store it in the ram
-    inx ;increment x
-    cpx #$20 ;compare to 32
-    bcc paletteloop ;if 32 is equal or bigger (thats when the carry flag gets set) loop again
+ 	; main application - rendering is currently off
+	lda #1 ; set initial high score to 1000
+	sta highscore+1
 
-  jsr display_title_screen
+ 	; initialize palette table
+ 	ldx #0
+paletteloop:
+	lda default_palette, x
+	sta palette, x
+	inx
+	cpx #32
+	bcc paletteloop
 
-  lda #VBLANK_NMI | BG_0000 | OBJ_1000 ;set game settings
-  sta ppu_ctl0
-  lda #BG_ON | OBJ_ON
-  sta ppu_ctl1
+resetgame:
+	jsr clear_sprites
 
-  ;set the ship's y coordinates
-  lda #192
-  sta oam
-  sta oam+4
-  lda #200
-  sta oam+8
-  sta oam+12
+ 	; draw the title screen
+	jsr display_title_screen
 
-  ;set the ship's sprite index number 
-  ldx #0
-  stx oam+1
-  inx
-  stx oam+5
-  inx
-  stx oam+9
-  inx
-  stx oam+13
+	; set our game settings
+	lda #VBLANK_NMI|BG_0000|OBJ_1000
+   	sta ppu_ctl0
+   	lda #BG_ON|OBJ_ON
+   	sta ppu_ctl1
 
-  ;set the sprite's attributes
-  lda #%00000000
-  sta oam+2
-  sta oam+6
-  sta oam+10
-  sta oam+14
+	jsr ppu_update
 
-  ;set the sprite's x positions
-  lda #120
-  sta oam+3
-  sta oam+11
-  lda #128
-  sta oam+7
-  sta oam+15
+	; wait for a gamepad button to be pressed
+titleloop:
+	jsr gamepad_poll
+	lda gamepad
+	and #PAD_A|PAD_B|PAD_START|PAD_SELECT
+	beq titleloop
 
-  jsr ppu_update
+	; set our random seed based on the time counter since the splash screen was displayed
+	lda time
+	sta SEED0
+	lda time+1
+	sta SEED0+1
+	jsr randomize
+	sbc time+1
+	sta SEED2   
+	jsr randomize
+	sbc time
+	sta SEED2+1
 
+	; set up ready for a new game
+	lda #1
+	sta level
+	jsr setup_level
 
-  titleloop:      ;loops until either one of the following 4 buttons was pressed
-    jsr gamepad_poll
-    lda gamepad
-    and #PAD_A|PAD_B|PAD_START|PAD_SELECT
-    beq titleloop
-    
-  ;dont ask questions about this part of the code (only god knows why)
-  lda time
-  sta SEED0
-  lda time+1
-  sta SEED0+1
-  jsr randomize
-  sbc time+1
-  sta SEED2
-  jsr randomize
-  sbc time
-  sta SEED2+1
+	lda #0 ; reset the player's score
+	sta score
+	sta score+1
+	sta score+2
+	lda #%00000001 ; set flag so the current score will be displayed
+	ora update
+	sta update
 
-  lda #1    ;set current level to 1
-  sta level
-  jsr setup_level 
+	lda #5 ; set the players starting lives
+	sta lives
+	lda #0 ; reset our player_dead flag
+	sta player_dead 
 
-  lda #0        ;reset score
-  sta score
-  sta score+1
-  sta score+2
+	; draw the game screen
+	jsr display_game_screen
 
-  lda #5      ;load initial and death life values 
-  sta lives
-  lda #0
-  sta player_dead
+	; display the player's ship
+	jsr display_player
 
-  jsr display_game_screen 
-  mainloop:
-    lda time      ;get current tick counter
+	jsr ppu_update
 
-    cmp lasttime  ;compare it to the previous one
-    beq mainloop  ;if no time has passed, keep looping
+mainloop:
+	lda time
+	; ensure the time has actually changed
+	cmp lasttime
+	beq mainloop
+	; time has changed update the lasttime value
+	sta lasttime
 
-    sta lasttime  ;store the current time in the last time 
-    jsr player_actions
-    jsr move_player_bullet
-    jsr spawn_enemies
-    jsr move_enemies
-    jmp mainloop
-      
+	lda lives
+	bne @notgameover
+	lda player_dead
+	cmp #1
+	beq @notgameover
+	cmp #240 ; we have waited long enough, jump back to the title screen 
+	beq resetgame
+	cmp #20
+	bne @notgameoversetup
+	lda #%00001000 ; signal to display Game Over message
+	ora update
+	sta update
+@notgameoversetup:
+	inc player_dead
+	jmp mainloop
+@notgameover:
+
+	jsr player_actions
+	jsr move_player_bullet
+	jsr spawn_enemies
+	jsr move_enemies
+
+ 	jmp mainloop
 .endproc
 
 .proc display_title_screen
@@ -334,69 +374,120 @@ irq: ;currently nothing yet for the irq
 .endproc
 
 .proc player_actions
+	lda player_dead
+	beq @continue
+	cmp #1 ; player flagged as dead, set initial shape
+	bne @notstep1
+	ldx #20 ; set 1st explosion pattern
+	jsr set_player_shape
+	lda #$00000001 ; select 2nd palette
+	sta oam+2
+	sta oam+6
+	sta oam+10
+	sta oam+14
+	jmp @nextstep
 
-  jsr gamepad_poll ;check the buttons currently selected
-  lda gamepad
+  @notstep1:
+    cmp #5 ; ready to change to next explosion shape
+    bne @notstep2
+    ldx #24 ; set 2nd explosion pattern
+    jsr set_player_shape
+    jmp @nextstep
 
-  and #PAD_L    ;if left button was pressed
-  beq :+        ;if it was not pressed skip the rest of this section
-  lda oam + 3   ;retrieve the current x coord
-  cmp #0        ;check if it's already on the far left side
-  beq :+        ;if it is, skip the rest of this section
+  @notstep2:
+    cmp #10 ; ready to change to next explosion shape
+    bne @notstep3
+    ldx #28 ; set 3rd explosion pattern
+    jsr set_player_shape
+    jmp @nextstep
 
-  sec           ;set carry flag
-  sbc #2        ;move ship left by 2
+  @notstep3:
+    cmp #15 ; ready to change to next explosion shape
+    bne @notstep4
+    ldx #32 ; set 3rd explosion pattern
+    jsr set_player_shape
+    jmp @nextstep
 
-  ;save the moved ship's location
-  sta oam + 3 
-  sta oam + 11
-  clc
-  adc #8
-  sta oam + 7
-  sta oam + 15
+  @notstep4:
+    cmp #20 ; explosion finished, reset player
+    bne @nextstep
+    lda lives
+    cmp #0 ; check for game over
+    bne @notgameover
+    rts ; game over exit
+  @notgameover:
+    jsr setup_level ; reset all enemies objects
+    jsr display_player ; display the player at the starting position
+    lda #0 ; clear the player dead flag
+    sta player_dead
+    rts
+  @nextstep:
+    inc player_dead
+    rts
+  @continue:
+    jsr gamepad_poll
+    lda gamepad
+    and #PAD_L
+    beq not_gamepad_left
+      ; game pad has been pressed left
+      lda oam + 3 ; get current x of ship
+      cmp #0
+      beq not_gamepad_left
+      ; subtract 1 from the ship position
+      sec
+      sbc #2
+      ; update the four sprites that make up the ship
+      sta oam + 3
+      sta oam + 11
+      clc
+      adc #8
+      sta oam + 7
+      sta oam + 15
+      
+  not_gamepad_left:
+    lda gamepad
+    and #PAD_R
+    beq not_gamepad_right
+      ; gamepad has been pressed right
+      lda oam + 3 ; get current X of ship
+      clc
+      adc #12 ; allow with width of ship
+      cmp #254
+      beq not_gamepad_right
+      lda oam + 3 ; get current X of ship
+      clc
+      adc #2
+      ; update the four sprites that make up the ship
+      sta oam + 3
+      sta oam + 11
+      clc
+      adc #8
+      sta oam + 7
+      sta oam + 15
+      
+  not_gamepad_right:
+    lda gamepad
+    and #PAD_A
+    beq not_gamepad_a
+      ; gamepad A button has been pressed
+      lda oam + 16 ; get Y of player bullet
+      cmp #$FF ; see if the sprite is not in use
+      bne not_gamepad_a
+        ; sprite is available, place bullet
+        lda #192
+        sta oam + 16 ; set bullet Y
+        lda #4
+        sta oam + 17 ; set sprite pattern 4
+        lda #0
+        sta oam + 18 ; set attributes
+        lda oam + 3 ; get player X position
+        clc
+        adc #6 ; centre bullet on player
+        sta oam + 19 ; set bullet X position
 
-  : ;next section of handling gamepad input
-  lda gamepad           ;load the gamepad information again
-  and #PAD_R            ;check if the right button was pressed
-  beq :+ ;if it wasn't, skip this section
+  not_gamepad_a:	
 
-  lda oam + 3           ;get the current x location
-  clc                   ;clear the carry flag
-  adc #12               ;add 12 because ship is 12 pixels wide
-  cmp #254            ;see if its already hitting the right wall
-  beq :+                ;if it is, skip this section
-  lda oam + 3           ;get the current x coord again
-  clc                   ;clear carry (again why tf would the book do this)
-  adc #2                ;move it right by 2
-
-  ;save the moved ship's location
-  sta oam + 3
-  sta oam + 11
-  clc
-  adc #8
-  sta oam + 7
-  sta oam + 15
-
-  :   ;end of section
-  lda gamepad       ;get gamepad input again
-  and #PAD_A        ;check if the a button was pressed (to fire)
-  beq :+            ;if not, skip this section
-  lda oam + 16      ;if it was, load the 
-  cmp #$FF          ;see if the sprite is not in use yet
-  bne :+            ;if it is, skip this section
-
-  lda oam           ;get the ship's y coord
-  sta oam + 16      ;make it the bullet's y coord
-  lda #4            ;load sprite index 4
-  sta oam + 17      ;make it the bullet's sprite index
-  lda #0            ;load attributes value 0
-  sta oam + 18      ;make it the bullet's attribute value
-  lda oam + 3       ;get the current x coord
-  clc               ;clear the carry
-  adc #6            ;add 6 (so it's in the middel)
-  sta oam + 19      ;make that value the bullet's x coord
-  :
-  rts     ;return from subroutine 
+	rts
 .endproc
 
 .proc move_player_bullet
@@ -460,19 +551,6 @@ irq: ;currently nothing yet for the irq
   asl
   ror SEED2
   rol SEED2+1
-  rts
-.endproc
-
-.proc setup_level
-  lda #0
-  ldx #0
-  @loop:  ;clears enemy data
-    sta enemydata,x
-    inx
-    cpx #20
-    bne @loop
-  lda #20           ;set initial enemy cooldown
-  sta enemycooldown 
   rts
 .endproc
 
@@ -819,46 +897,149 @@ irq: ;currently nothing yet for the irq
   rts
 .endproc
 
-.proc player_actions
-  lda player_dead  ;get if the player is dead
-  beq @continue    ;if he isnt, continue
+.proc display_player
+ lda #196
+ sta oam
+ sta oam+4
+ lda #204
+ sta oam+8
+ sta oam+12
 
-  cmp #1        ;check current death frame
-  bne @notstep1 ;if it isnt frame 1 jump to next phase of animation
-  ldx #20       ;load 20
-  jsr set_player_shape  ;set the player pattern
-  lda #$00000001
-  sta oam+2
-  sta oam+6
-  sta oam+10
-  sta oam+14
-  jmp @nextstep
-  @notstep1:
-  cmp #5
-  bne @notstep2
-  ldx #24
-  jsr set_player_shape
-  jmp @nextstep
-  @notstep2:
-  cmp #10
-  bne @notstep3
-  ldx #28
-  jsr set_player_shape
-  jmp @nextstep
-  @notstep3:
-  cmp #15
-  bne @notstep4
-  ldx #32
-  jsr set_player_shape
-  jmp @nextstep
-  @notstep4:
-  cmp #20
-  bne @nextstep
-  lda lives
-  cmp #0
-  bne @notgameover
-  rts
+ ldx #0
+ stx oam+1
+ inx
+ stx oam+5
+ inx
+ stx oam+9
+ inx
+ stx oam+13
+
+ lda #%00000000
+ sta oam+2
+ sta oam+6
+ sta oam+10
+ sta oam+14
+
+ lda #120
+ sta oam+3
+ sta oam+11
+ lda #128
+ sta oam+7
+ sta oam+15
+ rts
 .endproc
+
+.proc setup_level 	
+  lda #0 ; clear enemy data
+  ldx #0
+  @loop:
+    sta enemydata,x
+    inx
+    cpx #10
+    bne @loop
+    lda #20 ; set initial enemy cool down
+    sta enemycooldown
+    
+    lda #$ff ; hide all enemy sprites
+    ldx #0
+  @loop2:
+    sta oam+20,x
+    inx
+    cpx #160
+    bne @loop2
+    rts
+.endproc
+
+.proc display_highscore
+	vram_set_address (NAME_TABLE_0_ADDRESS + 1 * 32 + 13)
+
+	lda highscore+2 ; transform each decimal digit of the high score
+	jsr dec99_to_bytes
+	stx temp
+	sta temp+1
+
+	lda highscore+1
+	jsr dec99_to_bytes
+	stx temp+2
+	sta temp+3
+
+	lda highscore
+	jsr dec99_to_bytes
+	stx temp+4
+	sta temp+5
+
+	ldx #0 ; write the six characters to the screen
+  @loop:
+	lda temp,x
+	clc
+	adc #48
+	sta PPU_VRAM_IO
+	inx
+	cpx #6
+	bne @loop
+	lda #48 ; write trailing zero
+	sta PPU_VRAM_IO
+
+	vram_clear_address
+	rts
+.endproc
+
+.proc display_lives
+	vram_set_address (NAME_TABLE_0_ADDRESS + 27 * 32 + 14)
+	ldx lives
+	beq @skip ; no lives to display
+	and #%00000111 ; limit to a max of 8
+  @loop:
+    lda #5
+    sta PPU_VRAM_IO
+    lda #6
+    sta PPU_VRAM_IO
+    dex
+    bne @loop
+
+  @skip:
+    lda #8 ; blank out the remainder of the row
+    sec
+    sbc lives
+    bcc @skip2
+    tax
+    lda #0
+  @loop2:
+    sta PPU_VRAM_IO
+    sta PPU_VRAM_IO
+    dex
+    bne @loop2
+  @skip2:
+
+    vram_set_address (NAME_TABLE_0_ADDRESS + 28 * 32 + 14)
+    ldx lives
+    beq @skip3 ; no lives to display
+    and #%00000111 ; limit to a max of 8
+  @loop3:
+    lda #7
+    sta PPU_VRAM_IO
+    lda #8
+    sta PPU_VRAM_IO
+    dex
+    bne @loop3	
+
+  @skip3:
+    lda #8 ; blank out the remainder of the row
+    sec
+    sbc lives
+    bcc @skip4
+    tax
+    lda #0
+  @loop4:
+    sta PPU_VRAM_IO
+    sta PPU_VRAM_IO
+    dex
+    bne @loop4
+  @skip4:
+
+	rts
+.endproc
+
 title_text:
   .byte "M E G A B L A S T",0
 
