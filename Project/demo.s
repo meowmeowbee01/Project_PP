@@ -69,10 +69,10 @@ PAD_RIGHT	= %10000000
 		bit PPU_STATUS
 		bpl vblankwait1
 
-	lda #0
-	ldx #0
-	clear_memory:
-	sta $00, x
+	lda #0				; value we write in each register -> A
+	ldx #0				; loop counter -> X
+	clear_memory:		; 8 blocks of memory X 256 = 2K cleared
+	sta $00, x			; store whatever a has in given address with offset in X
 	sta $0100, x
 	sta $0200, x
 	sta $0300, x
@@ -81,7 +81,7 @@ PAD_RIGHT	= %10000000
 	sta $0600, x
 	sta $0700, x
 	inx 
-	bne clear_memory
+	bne clear_memory 	; loop will stop when X goes back to 0
 
 	vblankwait2:	; second wait for vblank, PPU is ready after this
 		bit PPU_STATUS
@@ -89,13 +89,13 @@ PAD_RIGHT	= %10000000
 
 	main:
 	load_palettes:
-		lda #$3f
+		lda #$3f 				; Set PPU address to $3F
 		sta PPU_VRAM_ADDRESS2
 		lda #0
 		sta PPU_VRAM_ADDRESS2
 		
 	ldx #0
-	@loop:
+	@loop:						; Loop transfers 20 bytes of palette data to VRAM
 		lda palettes, x
 		sta PPU_VRAM_IO
 		inx 
