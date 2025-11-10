@@ -72,7 +72,7 @@ PAD_RIGHT	= %10000000
 		lda #0				; value we write in each register -> A
 		ldx #0				; loop counter -> X
 		clear_memory:		; 8 blocks of memory X 256 = 2K cleared
-			sta $00, x			; store whatever a has in given address with offset in X
+			sta 0, x			; store whatever a has in given address with offset in X
 			sta $0100, x
 			sta $0200, x
 			sta $0300, x
@@ -129,7 +129,7 @@ PAD_RIGHT	= %10000000
 		tya
 		pha
 
-		ldx #$00			; set SPR-RAM address to 0
+		ldx #0			; set SPR-RAM address to 0
 		stx PPU_SPRRAM_ADDRESS
 
 		@loop:
@@ -149,28 +149,28 @@ PAD_RIGHT	= %10000000
 	.endproc
 
 	hello:
-		.byte $00, $00, $00, $00	; why do I need these here?
-		.byte $00, $00, $00, $00
+		.byte 0, 0, 0, 0	; why do I need these here?
+		.byte 0, 0, 0, 0
 
-		.byte $6c, 'P', $00, $60
-		.byte $6c, 'E', $00, $68
-		.byte $6c, 'E', $00, $70
-		.byte $6c, 'E', $00, $78
-		.byte $6c, 'P', $00, $80
-		.byte $6c, 'E', $00, $88
-		.byte $6c, 'E', $00, $90
-		.byte $6c, 'E', $00, $98
+		.byte $6c, 'P', 0, $60
+		.byte $6c, 'E', 0, $68
+		.byte $6c, 'E', 0, $70
+		.byte $6c, 'E', 0, $78
+		.byte $6c, 'P', 0, $80
+		.byte $6c, 'E', 0, $88
+		.byte $6c, 'E', 0, $90
+		.byte $6c, 'E', 0, $98
 
 	palettes:
-		.byte $0f, $00, $00, $00	; background palette
-		.byte $0f, $00, $00, $00
-		.byte $0f, $00, $00, $00
-		.byte $0f, $00, $00, $00
+		.byte $0f, 0, 0, 0	; background palette
+		.byte $0f, 0, 0, 0
+		.byte $0f, 0, 0, 0
+		.byte $0f, 0, 0, 0
 
-		.byte $0f, $26, $00, $00	; sprite palette
-		.byte $0f, $00, $00, $00
-		.byte $0f, $00, $00, $00
-		.byte $0f, $00, $00, $00
+		.byte $0f, $26, 0, 0	; sprite palette
+		.byte $0f, 0, 0, 0
+		.byte $0f, 0, 0, 0
+		.byte $0f, 0, 0, 0
 
 .segment "CHARS"	; character memory
 	.incbin "PP.chr"
