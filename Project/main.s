@@ -38,7 +38,7 @@ PAD_RIGHT	= %10000000
 	.byte $01					; 1x  8KB CHR data
 	.byte INES_MIRROR | (INES_SRAM << 1) | ((INES_MAPPER & $f) << 4)
 	.byte (INES_MAPPER & %11110000)
-	.byte $0, $0, $0, $0, $0, $0, $0, $0	; padding
+	.byte 0, 0, 0, 0, 0, 0, 0, 0	; padding
 
 .segment "VECTORS"
 	.addr nmi		; when an NMI happens (once per frame if enabled), a jump to the label nmi will occur
