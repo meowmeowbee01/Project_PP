@@ -44,7 +44,17 @@
   highscore: .res 3
   lives: .res 1
   player_dead: .res 1
-  
+
+  ;update flags:
+  ;bit 0:   is set if the score is updated (so we dont do calculations if we dont need it)
+  ;bit 1:   is set if the high score has been updated (same reason)
+  ;bit 2:   is set if we need to display the player's lives
+  ;bit 3:   is set if the game over message needs to be displayed
+  ;bit 4:   not used yet
+  ;bit 5:   not used yet 
+  ;bit 6:   not used yet
+  ;bit 7:   not used yet  
+
 .segment "OAM"
   oam: .res 256
 
@@ -213,33 +223,33 @@ irq: ;currently nothing yet for the irq
 
  	; initialize palette table
  	ldx #0
-paletteloop:
-	lda default_palette, x
-	sta palette, x
-	inx
-	cpx #32
-	bcc paletteloop
+  paletteloop:
+    lda default_palette, x
+    sta palette, x
+    inx
+    cpx #32
+    bcc paletteloop
 
-resetgame:
-	jsr clear_sprites
+  resetgame:
+    jsr clear_sprites
 
- 	; draw the title screen
-	jsr display_title_screen
+    ; draw the title screen
+    jsr display_title_screen
 
-	; set our game settings
-	lda #VBLANK_NMI|BG_0000|OBJ_1000
-   	sta ppu_ctl0
-   	lda #BG_ON|OBJ_ON
-   	sta ppu_ctl1
+    ; set our game settings
+    lda #VBLANK_NMI|BG_0000|OBJ_1000
+    sta ppu_ctl0
+    lda #BG_ON|OBJ_ON
+    sta ppu_ctl1
 
-	jsr ppu_update
+    jsr ppu_update
 
 	; wait for a gamepad button to be pressed
-titleloop:
-	jsr gamepad_poll
-	lda gamepad
-	and #PAD_A|PAD_B|PAD_START|PAD_SELECT
-	beq titleloop
+  titleloop:
+    jsr gamepad_poll
+    lda gamepad
+    and #PAD_A|PAD_B|PAD_START|PAD_SELECT
+    beq titleloop
 
 	; set our random seed based on the time counter since the splash screen was displayed
 	lda time
@@ -279,37 +289,36 @@ titleloop:
 
 	jsr ppu_update
 
-mainloop:
-	lda time
-	; ensure the time has actually changed
-	cmp lasttime
-	beq mainloop
-	; time has changed update the lasttime value
-	sta lasttime
+  mainloop:
+    lda time
+    ; ensure the time has actually changed
+    cmp lasttime
+    beq mainloop
+    ; time has changed update the lasttime value
+    sta lasttime
 
-	lda lives
-	bne @notgameover
-	lda player_dead
-	cmp #1
-	beq @notgameover
-	cmp #240 ; we have waited long enough, jump back to the title screen 
-	beq resetgame
-	cmp #20
-	bne @notgameoversetup
-	lda #%00001000 ; signal to display Game Over message
-	ora update
-	sta update
-@notgameoversetup:
-	inc player_dead
-	jmp mainloop
-@notgameover:
+    lda lives         ;get the lives
+    bne @notgameover  ;if it's not 0 jump to next section
+    lda player_dead   ;load player dead status
+    cmp #1            ;see if the flag is set
+    beq @notgameover  ;if it isn't 
+    cmp #240        ;compare to the last 4 bits
+    beq resetgame     ;if all those bits are set, reset the game 
+    cmp #20           ;if bit 5 and 3 are set
+    bne @notgameoversetup ;dont show game over screen
+    lda #%00001000    ;set the game over flag
+    ora update        
+    sta update
+    @notgameoversetup:
+      inc player_dead   ;start the setup of the game over screen
+      jmp mainloop      ;so it can show it next loop (also instantly jump back to the loop)
+    @notgameover:
+      jsr player_actions      ;do the player actions
+      jsr move_player_bullet  ;move bullet
+      jsr spawn_enemies       ;spawn enemies
+      jsr move_enemies        ;move them
 
-	jsr player_actions
-	jsr move_player_bullet
-	jsr spawn_enemies
-	jsr move_enemies
-
- 	jmp mainloop
+    jmp mainloop              ;redo of healer is a great anime, watch episode 1 (at least 10mins). You'll enjoy it
 .endproc
 
 .proc display_title_screen
@@ -376,7 +385,7 @@ mainloop:
 .endproc
 
 .proc player_actions
-	lda player_dead
+	lda player_dead    
 	beq @continue
 	cmp #1 ; player flagged as dead, set initial shape
 	bne @notstep1
