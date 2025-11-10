@@ -138,7 +138,6 @@ PAD_RIGHT	= %10000000
 			inx 
 			cpx #$28
 			bne @loop
-			rti 
 
 		; restore registers and return
 		pla
@@ -153,14 +152,14 @@ PAD_RIGHT	= %10000000
 		.byte $00, $00, $00, $00	; why do I need these here?
 		.byte $00, $00, $00, $00
 
-		.byte $6c, $03, $00, $4e	;h
-		.byte $6c, $04, $00, $58	;e
-		.byte $6c, $05, $00, $62	;l
-		.byte $6c, $05, $00, $6c	;l
-		.byte $6c, $01, $00, $76	;o
-		.byte $6c, $00, $00, $8a	;t
-		.byte $6c, $01, $00, $94	;o
-		.byte $6c, $02, $00, $9e	;m
+		.byte $6c, 'P', $00, $60
+		.byte $6c, 'E', $00, $68
+		.byte $6c, 'E', $00, $70
+		.byte $6c, 'E', $00, $78
+		.byte $6c, 'P', $00, $80
+		.byte $6c, 'E', $00, $88
+		.byte $6c, 'E', $00, $90
+		.byte $6c, 'E', $00, $98
 
 	palettes:
 		.byte $0f, $00, $00, $00	; background palette
@@ -173,64 +172,5 @@ PAD_RIGHT	= %10000000
 		.byte $0f, $00, $00, $00
 		.byte $0f, $00, $00, $00
 
-.segment "CHARS"
-;.segment "TILES"	; character memory
-	.byte %11111111	; T (00)
-	.byte %11111111
-	.byte %00011000
-	.byte %00011000
-	.byte %00011000
-	.byte %00011000
-	.byte %00011000
-	.byte %00011000
-	.byte $00, $00, $00, $00, $00, $00, $00, $00
-
-	.byte %11111111 ; O (01)
-	.byte %11111111
-	.byte %11000011
-	.byte %11000011
-	.byte %11000011
-	.byte %11000011
-	.byte %11111111
-	.byte %11111111
-	.byte $00, $00, $00, $00, $00, $00, $00, $00
-
-	.byte %11000011	; M (02)
-	.byte %11100111
-	.byte %11111111
-	.byte %11011011
-	.byte %11000011
-	.byte %11000011
-	.byte %11000011
-	.byte %11000011
-	.byte $00, $00, $00, $00, $00, $00, $00, $00
-
-	.byte %11000011	; H (03)
-	.byte %11000011
-	.byte %11000011
-	.byte %11111111
-	.byte %11111111
-	.byte %11000011
-	.byte %11000011
-	.byte %11000011
-	.byte $00, $00, $00, $00, $00, $00, $00, $00
-
-	.byte %11111111	; E (04)
-	.byte %11111111
-	.byte %11000000
-	.byte %11111100
-	.byte %11111100
-	.byte %11000000
-	.byte %11111111
-	.byte %11111111
-	.byte $00, $00, $00, $00, $00, $00, $00, $00
-
-	.byte %11000000	; L (05)
-	.byte %11000000
-	.byte %11000000
-	.byte %11000000
-	.byte %11000000
-	.byte %11000000
-	.byte %11111111
-	.byte %11111111
-	.byte $00, $00, $00, $00, $00, $00, $00, $00
+.segment "CHARS"	; character memory
+	.incbin "PP.chr"

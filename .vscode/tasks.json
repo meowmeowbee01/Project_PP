@@ -22,8 +22,8 @@
 			"type": "shell",
 			"command": "${config:cc65}\\ld65.exe",
 			"args": [
-				"-C",
-				"BookDemo\\memory.cfg",
+				"-t",
+				"nes",
 				"-o",
 				"build\\${fileBasenameNoExtension}.nes",
 				"build\\${fileBasenameNoExtension}.o",
