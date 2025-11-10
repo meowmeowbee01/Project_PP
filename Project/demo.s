@@ -53,7 +53,7 @@ PAD_RIGHT	= %10000000
 	irq:
 		rti				; do nothing if an IRQ happens
 
-	.proc reset:
+	.proc reset
 		sei					; disable IRQs
 		cld					; disable decimal mode
 		ldx #0
@@ -95,7 +95,7 @@ PAD_RIGHT	= %10000000
 		jmp main
 	.endproc
 
-	.proc main:
+	.proc main
 	; main application - rendering is currently off
 		load_palettes:
 			lda #$3f 				; Set PPU address to $3F
@@ -121,7 +121,7 @@ PAD_RIGHT	= %10000000
 			jmp forever
 	.endproc
 
-	.proc nmi:
+	.proc nmi
 		; save registers
 		pha
 		txa
@@ -139,10 +139,6 @@ PAD_RIGHT	= %10000000
 			cpx #$28
 			bne @loop
 			rti 
-
-		; flag PPU update complete
-		ldx #0
-		stx nmi_ready
 
 		; restore registers and return
 		pla
@@ -177,7 +173,8 @@ PAD_RIGHT	= %10000000
 		.byte $0f, $00, $00, $00
 		.byte $0f, $00, $00, $00
 
-.segment "TILES"	; character memory
+.segment "CHARS"
+;.segment "TILES"	; character memory
 	.byte %11111111	; T (00)
 	.byte %11111111
 	.byte %00011000
