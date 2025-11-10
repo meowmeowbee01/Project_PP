@@ -53,7 +53,7 @@ PAD_RIGHT	= %10000000
 	irq:
 		rti				; do nothing if an IRQ happens
 
-	reset:
+	.proc reset:
 		sei					; disable IRQs
 		cld					; disable decimal mode
 		ldx #0
@@ -65,63 +65,93 @@ PAD_RIGHT	= %10000000
 		ldx #$ff 			; Set up stack
 		txs 
 
-	vblankwait1:	; first wait for vblank to make sure PPU is ready
-		bit PPU_STATUS
-		bpl vblankwait1
+		vblankwait1:	; first wait for vblank to make sure PPU is ready
+			bit PPU_STATUS
+			bpl vblankwait1
 
-	lda #0				; value we write in each register -> A
-	ldx #0				; loop counter -> X
-	clear_memory:		; 8 blocks of memory X 256 = 2K cleared
-	sta $00, x			; store whatever a has in given address with offset in X
-	sta $0100, x
-	sta $0200, x
-	sta $0300, x
-	sta $0400, x
-	sta $0500, x
-	sta $0600, x
-	sta $0700, x
-	inx 
-	bne clear_memory 	; loop will stop when X goes back to 0
+		lda #0				; value we write in each register -> A
+		ldx #0				; loop counter -> X
+		clear_memory:		; 8 blocks of memory X 256 = 2K cleared
+			sta $00, x			; store whatever a has in given address with offset in X
+			sta $0100, x
+			sta $0200, x
+			sta $0300, x
+			sta $0400, x
+			sta $0500, x
+			sta $0600, x
+			sta $0700, x
+			inx 
+			bne clear_memory 	; loop will stop when X goes back to 0
 
-	vblankwait2:	; second wait for vblank, PPU is ready after this
-		bit PPU_STATUS
-		bpl vblankwait2
+		; maybe add a clear_oam here ???
 
-	main:
-	load_palettes:
-		lda #$3f 				; Set PPU address to $3F
-		sta PPU_VRAM_ADDRESS2
-		lda #0
-		sta PPU_VRAM_ADDRESS2
+		vblankwait2:	; second wait for vblank, PPU is ready after this
+			bit PPU_STATUS
+			bpl vblankwait2
+
+		lda #%10001000
+  		sta PPU_CONTROL ;enable nmi
+
+		jmp main
+	.endproc
+
+	.proc main:
+	; main application - rendering is currently off
+		load_palettes:
+			lda #$3f 				; Set PPU address to $3F
+			sta PPU_VRAM_ADDRESS2
+			lda #0
+			sta PPU_VRAM_ADDRESS2
 		
-	ldx #0
-	@loop:						; Loop transfers 20 bytes of palette data to VRAM
-		lda palettes, x
-		sta PPU_VRAM_IO
-		inx 
-		cpx #$20
-		bne @loop
+		ldx #0
+		@loop:						; Loop transfers 32 (20hex) bytes of palette data to VRAM
+			lda palettes, x
+			sta PPU_VRAM_IO
+			inx 
+			cpx #$20
+			bne @loop
 
-	enable_rendering:
-		lda #%10000000	; enable NMI
-		sta PPU_CONTROL
-		lda #%00010000	; enable Sprites
-		sta PPU_MASK
+		enable_rendering:
+			lda #%10000000	; enable NMI
+			sta PPU_CONTROL
+			lda #%00010000	; enable Sprites
+			sta PPU_MASK
 
-	forever:
-		jmp forever
+		forever:
+			jmp forever
+	.endproc
 
-	nmi:
+	.proc nmi:
+		; save registers
+		pha
+		txa
+		pha
+		tya
+		pha
+
 		ldx #$00			; set SPR-RAM address to 0
 		stx PPU_SPRRAM_ADDRESS
 
-	@loop:
-		lda hello, x 		; load the hello message into SPR-RAM
-		sta PPU_SPRRAM_IO
-		inx 
-		cpx #$28
-		bne @loop
-		rti 
+		@loop:
+			lda hello, x 		; load the hello message into SPR-RAM
+			sta PPU_SPRRAM_IO
+			inx 
+			cpx #$28
+			bne @loop
+			rti 
+
+		; flag PPU update complete
+		ldx #0
+		stx nmi_ready
+
+		; restore registers and return
+		pla
+		tay
+		pla
+		tax
+		pla
+		rti
+	.endproc
 
 	hello:
 		.byte $00, $00, $00, $00	; why do I need these here?
