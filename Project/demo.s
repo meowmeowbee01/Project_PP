@@ -1,13 +1,13 @@
 ; PPU registers
 PPU_CONTROL			= $2000		; PPU control register 1 (write)
 PPU_MASK			= $2001		; PPU control register 2 (write)
-PPU_STATUS			= $2002		; PPU status register (Read)
+PPU_STATUS			= $2002		; PPU status register (read)
 PPU_SPRRAM_ADDRESS	= $2003 	; PPU SPR-RAM address register (write)
 PPU_SPRRAM_IO		= $2004 	; PPU SPR-RAM I/O register (write)
-PPU_VRAM_ADDRESS1	= $2005 	; PPU VRAM address Register 1 (write)
-PPU_VRAM_ADDRESS2	= $2006 	; PPU VRAM address Register 2 (write)
+PPU_VRAM_ADDRESS1	= $2005 	; PPU VRAM address register 1 (write)
+PPU_VRAM_ADDRESS2	= $2006 	; PPU VRAM address register 2 (write)
 PPU_VRAM_IO			= $2007 	; VRAM I/O register (read/write)
-SPRITE_DMA			= $4014 	; sprite DMA Register
+SPRITE_DMA			= $4014 	; sprite DMA register
 
 ; APU registers
 APU_DM_CONTROL		= $4010		; APU delta modulation control register (write)
@@ -41,9 +41,9 @@ PAD_RIGHT	= %10000000
 	.byte $0, $0, $0, $0, $0, $0, $0, $0	; padding
 
 .segment "VECTORS"
-	.addr nmi		; when an NMI happens (once per frame if enabled) the label nmi
-	.addr reset		; when the processor first turns on or is reset, it will jump to the label reset
-	.addr irq		; external interrupt IRQ (unused)
+	.addr nmi		; when an NMI happens (once per frame if enabled), a jump to the label nmi will occur
+	.addr reset		; when the processor first turns on or is reset, a jump to the label reset will occur
+	.addr irq		; when an external interrupt is requested and IRQs are enabled, a jump to the irq label will occur
 
 .segment "STARTUP"	; "nes" linker config requires a STARTUP section, even if it's empty
 
@@ -67,12 +67,12 @@ PAD_RIGHT	= %10000000
 
 	vblankwait1:	; first wait for vblank to make sure PPU is ready
 		bit PPU_STATUS
-		bpl vblankwait1 ;jump back
+		bpl vblankwait1
 
-	lda #0
-	ldx #0
-	clear_memory:
-	sta $00, x
+	lda #0				; value we write in each register -> A
+	ldx #0				; loop counter -> X
+	clear_memory:		; 8 blocks of memory X 256 = 2K cleared
+	sta $00, x			; store whatever a has in given address with offset in X
 	sta $0100, x
 	sta $0200, x
 	sta $0300, x
@@ -81,7 +81,7 @@ PAD_RIGHT	= %10000000
 	sta $0600, x
 	sta $0700, x
 	inx 
-	bne clear_memory
+	bne clear_memory 	; loop will stop when X goes back to 0
 
 	vblankwait2:	; second wait for vblank, PPU is ready after this
 		bit PPU_STATUS
@@ -89,13 +89,13 @@ PAD_RIGHT	= %10000000
 
 	main:
 	load_palettes:
-		lda #$3f
+		lda #$3f 				; Set PPU address to $3F
 		sta PPU_VRAM_ADDRESS2
 		lda #0
 		sta PPU_VRAM_ADDRESS2
 		
 	ldx #0
-	@loop:
+	@loop:						; Loop transfers 20 bytes of palette data to VRAM
 		lda palettes, x
 		sta PPU_VRAM_IO
 		inx 
