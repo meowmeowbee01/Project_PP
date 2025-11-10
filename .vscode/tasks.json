@@ -6,10 +6,10 @@
 			"type": "shell",
 			"command": "${config:cc65}\\ca65.exe",
 			"args": [
-				"${file}",
+				"${relativeFile}",
 				"-g",
 				"-o",
-				"build\\${fileBasenameNoExtension}.o"
+				"build/${fileBasenameNoExtension}.o"
 			],
 			"group": {
 				"kind": "build",
@@ -22,7 +22,8 @@
 			"type": "shell",
 			"command": "${config:cc65}\\ld65.exe",
 			"args": [
-				"-C", "BookDemo\\memory.cfg",
+				"-C",
+				"BookDemo\\memory.cfg",
 				"-o",
 				"build\\${fileBasenameNoExtension}.nes",
 				"build\\${fileBasenameNoExtension}.o",
