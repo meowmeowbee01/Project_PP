@@ -2,6 +2,12 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "create Build folder",
+			"type": "shell",
+			"command": "if (-not (Test-Path \"Build\")) { mkdir \"Build\" }",
+			"group": "build"
+		},
+		{
 			"label": "Assemble and Link NES",
 			"type": "shell",
 			"command": "${config:cc65}\\ca65.exe",
@@ -15,6 +21,7 @@
 				"kind": "build",
 				"isDefault": true
 			},
+			"dependsOn": "create Build folder",
 			"detail": "Assembles an NES project using cc65."
 		},
 		{
