@@ -1,33 +1,3 @@
-; PPU registers
-PPU_CONTROL			= $2000		; PPU control register 1 (write)
-PPU_MASK			= $2001		; PPU control register 2 (write)
-PPU_STATUS			= $2002		; PPU status register (read)
-PPU_SPRRAM_ADDRESS	= $2003 	; PPU SPR-RAM address register (write)
-PPU_SPRRAM_IO		= $2004 	; PPU SPR-RAM I/O register (write)
-PPU_VRAM_ADDRESS1	= $2005 	; PPU VRAM address register 1 (write)
-PPU_VRAM_ADDRESS2	= $2006 	; PPU VRAM address register 2 (write)
-PPU_VRAM_IO			= $2007 	; VRAM I/O register (read/write)
-SPRITE_DMA			= $4014 	; sprite DMA register
-
-; APU registers
-APU_DM_CONTROL		= $4010		; APU delta modulation control register (write)
-APU_CLOCK			= $4015		; APU sound/vertical clock signal register (read/write)
-
-; joystick/controller values
-JOYPAD1 = $4016		; joypad 1 (read/write)
-JOYPAD2 = $4017		; joypad 2 (read/write)
-
-; gamepad bit values
-PAD_A		= %00000001
-PAD_B		= %00000010
-PAD_SELECT	= %00000100
-PAD_START	= %00001000
-PAD_UP		= %00010000
-PAD_DOWN	= %00100000
-PAD_LEFT	= %01000000
-PAD_RIGHT	= %10000000
-
-.segment "OAM"
 .segment "HEADER"
 	INES_MAPPER = 0				; 0 = NROM
 	INES_MIRROR = 0				; 0 = horizontal mirroring, 1 = vertical mirroring
@@ -36,7 +6,7 @@ PAD_RIGHT	= %10000000
 	.byte "NES", $1a			; iNES header identifier
 	.byte $02					; 2x 16KB PRG code
 	.byte $01					; 1x  8KB CHR data
-	.byte INES_MIRROR | (INES_SRAM << 1) | ((INES_MAPPER & $f) << 4)
+	.byte INES_MIRROR | (INES_SRAM << 1) | ((INES_MAPPER & $f) << $4)
 	.byte (INES_MAPPER & %11110000)
 	.byte 0, 0, 0, 0, 0, 0, 0, 0	; padding
 
@@ -47,6 +17,15 @@ PAD_RIGHT	= %10000000
 
 .segment "STARTUP"	; "nes" linker config requires a STARTUP section, even if it's empty
 
+.segment "TILES"	; character memory
+	.incbin "PP.chr"
+
+.segment "ZEROPAGE"
+
+.segment "OAM"
+	oam: .res $ff
+
+.include "neslib.s"
 
 .segment "CODE"		; main code segment for the program
 
@@ -95,32 +74,6 @@ PAD_RIGHT	= %10000000
 		jmp main
 	.endproc
 
-	.proc main
-	; main application - rendering is currently off
-		load_palettes:
-			lda #$3f 				; Set PPU address to $3F
-			sta PPU_VRAM_ADDRESS2
-			lda #0
-			sta PPU_VRAM_ADDRESS2
-		
-		ldx #0
-		@loop:						; Loop transfers 32 (20hex) bytes of palette data to VRAM
-			lda palettes, x
-			sta PPU_VRAM_IO
-			inx 
-			cpx #$20
-			bne @loop
-
-		enable_rendering:
-			lda #%10000000	; enable NMI
-			sta PPU_CONTROL
-			lda #%00010000	; enable Sprites
-			sta PPU_MASK
-
-		forever:
-			jmp forever
-	.endproc
-
 	.proc nmi
 		; save registers
 		pha
@@ -148,6 +101,31 @@ PAD_RIGHT	= %10000000
 		rti
 	.endproc
 
+	.proc main ; main application - rendering is currently off
+		load_palettes:
+			lda #$3f 				; Set PPU address to $3F
+			sta PPU_VRAM_ADDRESS2
+			lda #0
+			sta PPU_VRAM_ADDRESS2
+		
+		ldx #0
+		@loop:						; Loop transfers 32 (20hex) bytes of palette data to VRAM
+			lda palettes, x
+			sta PPU_VRAM_IO
+			inx 
+			cpx #$20
+			bne @loop
+
+		enable_rendering:
+			lda #%10000000	; enable NMI
+			sta PPU_CONTROL
+			lda #%00010000	; enable Sprites
+			sta PPU_MASK
+
+		forever:
+			jmp forever
+	.endproc
+
 	hello:
 		.byte 0, 0, 0, 0	; why do I need these here?
 		.byte 0, 0, 0, 0
@@ -171,6 +149,3 @@ PAD_RIGHT	= %10000000
 		.byte $0f, 0, 0, 0
 		.byte $0f, 0, 0, 0
 		.byte $0f, 0, 0, 0
-
-.segment "CHARS"	; character memory
-	.incbin "PP.chr"

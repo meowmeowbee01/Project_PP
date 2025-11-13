@@ -10,10 +10,10 @@
 				"reveal": "never",
 				"revealProblems": "never"
 			},
-			"romPath": "${workspaceFolder}/build/${fileBasenameNoExtension}.nes",
-			"dbgPath": "${workspaceFolder}/build/${fileBasenameNoExtension}.dbg",
+			"romPath": "${workspaceFolder}\\Build\\${fileBasenameNoExtension}.nes",
+			"dbgPath": "${workspaceFolder}\\Build\\${fileBasenameNoExtension}.dbg",
 			"program": "${config:Mesen}",
-			"sourcePath": "${workspaceFolder}/",
+			"sourcePath": "${workspaceFolder}\\",
 			"stopOnEntry": false,
 			"resetOnEntry": true
 		}

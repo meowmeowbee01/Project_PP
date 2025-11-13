@@ -15,7 +15,7 @@
 				"${relativeFile}",
 				"-g",
 				"-o",
-				"build/${fileBasenameNoExtension}.o"
+				"Build/${fileBasenameNoExtension}.o"
 			],
 			"group": {
 				"kind": "build",
@@ -29,13 +29,13 @@
 			"type": "shell",
 			"command": "${config:cc65}\\ld65.exe",
 			"args": [
-				"-t",
-				"nes",
+				"-C",
+				"${relativeFileDirname}\\memory.cfg",
 				"-o",
-				"build\\${fileBasenameNoExtension}.nes",
-				"build\\${fileBasenameNoExtension}.o",
+				"Build\\${fileBasenameNoExtension}.nes",
+				"Build\\${fileBasenameNoExtension}.o",
 				"--dbgfile",
-				"build\\${fileBasenameNoExtension}.dbg"
+				"Build\\${fileBasenameNoExtension}.dbg"
 			],
 			"group": "build",
 			"dependsOn": "Assemble and Link NES",
