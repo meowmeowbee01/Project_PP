@@ -28,29 +28,32 @@
 .include "neslib.s"
 
 .segment "CODE"		; main code segment for the program
+	hello_world:
+	.byte "HELLO WORLD",0
 
-	irq:
-		rti				; do nothing if an IRQ happens
+	.proc irq
+		rti ; do nothing if an IRQ happens
+	.endproc
 
 	.proc reset
 		sei					; disable IRQs
 		cld					; disable decimal mode
-		ldx #0
-		stx PPU_CONTROL		; disable NMI
-		stx PPU_MASK 		; disable rendering
-		stx APU_DM_CONTROL	; disable DMC IRQs
-		ldx #$40			
-		stx $4017			; disable APU frame IRQ
+		lda #0
+		sta PPU_CONTROL		; disable NMI
+		sta PPU_MASK 		; disable rendering
+		sta APU_DM_CONTROL	; disable DMC IRQs
+		lda #$40			
+		sta $4017			; disable APU frame IRQ
 		ldx #$ff 			; Set up stack
-		txs 
+		tsx 
 
-		vblankwait1:	; first wait for vblank to make sure PPU is ready
+		@vblankwait1:		; first wait for vblank to make sure PPU is ready
 			bit PPU_STATUS
-			bpl vblankwait1
+			bpl @vblankwait1
 
 		lda #0				; value we write in each register -> A
 		ldx #0				; loop counter -> X
-		clear_memory:		; 8 blocks of memory X 256 = 2K cleared
+		@clear_memory:		; 8 blocks of memory X 256 = 2K cleared
 			sta 0, x			; store whatever a has in given address with offset in X
 			sta $0100, x
 			sta $0200, x
@@ -60,27 +63,22 @@
 			sta $0600, x
 			sta $0700, x
 			inx 
-			bne clear_memory 	; loop will stop when X goes back to 0
+			bne @clear_memory 	; loop will stop when X goes back to 0
 
 		; maybe add a clear_oam here ???
 
-		vblankwait2:	; second wait for vblank, PPU is ready after this
+		@vblankwait2:	; second wait for vblank, PPU is ready after this
 			bit PPU_STATUS
-			bpl vblankwait2
+			bpl @vblankwait2
 
 		lda #%10001000
-  		sta PPU_CONTROL ;enable nmi
+  		sta PPU_CONTROL ; enable nmi
 
 		jmp main
 	.endproc
 
 	.proc nmi
-		; save registers
-		pha
-		txa
-		pha
-		tya
-		pha
+		save_registers
 
 		ldx #0			; set SPR-RAM address to 0
 		stx PPU_SPRRAM_ADDRESS
@@ -92,24 +90,19 @@
 			cpx #$28
 			bne @loop
 
-		; restore registers and return
-		pla
-		tay
-		pla
-		tax
-		pla
-		rti
+		restore_regsiters
+		rti 
 	.endproc
 
 	.proc main ; main application - rendering is currently off
 		load_palettes:
-			lda #$3f 				; Set PPU address to $3F
+			lda #$3f 		; Set PPU address to $3F
 			sta PPU_VRAM_ADDRESS2
 			lda #0
 			sta PPU_VRAM_ADDRESS2
 		
 		ldx #0
-		@loop:						; Loop transfers 32 (20hex) bytes of palette data to VRAM
+		@loop:				; Loop transfers 32 (20hex) bytes of palette data to VRAM
 			lda palettes, x
 			sta PPU_VRAM_IO
 			inx 

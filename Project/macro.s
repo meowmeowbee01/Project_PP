@@ -8,13 +8,29 @@
 
 .macro assign_16i dest, value
 	lda #<value 			; puts first the low byte then high byte in destination (+1)
-	sta dest+0
+	sta dest + 0
 	lda #>value
-	sta dest+1
+	sta dest + 1
 .endmacro
 
 .macro vram_clear_address
 	lda #0 					; clears the address
 	sta PPU_VRAM_ADDRESS2
 	sta PPU_VRAM_ADDRESS2
+.endmacro
+
+.macro save_registers
+	pha 
+	txa 
+	pha 
+	tya 
+	pha 
+.endmacro
+
+.macro restore_regsiters
+	pla 
+	tay 
+	pla 
+	tax 
+	pla 
 .endmacro
