@@ -34,8 +34,8 @@
 
 .segment "CODE" 	; main code segment for the program
 
-	hello_world:
-	.byte "HELLO WORLD",0
+	hello_text:
+	.byte "Hello World__",0
 
 	.proc irq
 		rti 		; do nothing if an IRQ happens
@@ -119,74 +119,65 @@
 		rti 
 	.endproc
 
-.proc main
- 	ldx #0 			; initialize palette table
-	@paletteloop:
-		lda default_palette, x
-		sta palette, x
-		inx 
-		cpx #$20
-		bcc @paletteloop
+	.proc main
+		ldx #0 			; initialize palette table
+		@paletteloop:
+			lda default_palette, x
+			sta palette, x
+			inx 
+			cpx #$20
+			bcc @paletteloop
 
-	resetgame:
-		jsr clear_sprites
+		resetgame:
+			jsr clear_sprites
 
-		jsr display_title_screen
+			jsr display_title_screen
 
-		lda #VBLANK_NMI|BG_0000|OBJ_1000 ; set our game settings
-		sta ppu_ctl0
-		lda #BG_ON|OBJ_ON
-		sta ppu_ctl1
+			lda #VBLANK_NMI|BG_0000|OBJ_1000 ; set our game settings
+			sta ppu_ctl0
+			lda #BG_ON|OBJ_ON
+			sta ppu_ctl1
 
-		jsr ppu_update
+			jsr ppu_update
 
-	mainloop:
-		jmp mainloop
-.endproc
+		mainloop:
+			jmp mainloop
+	.endproc
 
-.proc display_title_screen
-	jsr ppu_off 		; turn rendering off
-	jsr clear_nametable ; clear nametable
+	.proc display_title_screen
+		jsr ppu_off 		; turn rendering off
+		jsr clear_nametable ; clear nametable
 
-	vram_set_address (NAME_TABLE_0_ADDRESS + 16 * $20 + 5) 	; set the vram address
-	assign_16i text_address, hello_text 					; put the text in the address
-	jsr write_text
+		vram_set_address (NAME_TABLE_0_ADDRESS + 16 * $20 + 5) 	; set the vram address
+		assign_16i text_address, hello_text 					; put the text in the address
+		jsr write_text
 
-	;vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 8) 		; sets the title text to use the second palette
-	;assign_16i paddr, title_attributes
+		vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + $8) 		; sets the title text to use the second palette
+		assign_16i paddr, title_attributes
 
-	ldy #0
-	@loop: 				; write all attributes to the vram
-		lda (paddr),y
-		sta PPU_VRAM_IO
-		iny 
-		cpy #8
-		bne @loop
+		ldy #0
+		@loop: 				; write all attributes to the vram
+			lda (paddr),y
+			sta PPU_VRAM_IO
+			iny 
+			cpy #8
+			bne @loop
 
-	jsr ppu_update  ; update the ppu
-	rts 
-.endproc
+		jsr ppu_update  ; update the ppu
+		rts 
+	.endproc
 
-title_text:
-	.byte "M E G A B L A S T",0
-
-hello_text:
-	.byte "Hello World",0
-
-press_play_text:
-	.byte "PRESS FIRE TO BEGIN",0
-
-title_attributes:
-	.byte %00000101,%00000101,%00000101,%00000101,%00000101,%00000101,%00000101,%00000101
+	title_attributes:
+		.byte %00000101,%00000101,%00000101,%00000101,%00000101,%00000101,%00000101,%00000101
 
 .segment "RODATA"
 	default_palette: 	; background palette
-		.byte $0f,$15,$26,$37
-		.byte $0f,$19,$29,$39
-		.byte $0f,$11,$21,$31
-		.byte $0f,0  ,$10,$30
+		.byte $0f, $15, $16, $26 ; red
+		.byte $0f, $1a, $2a, $29 ; green
+		.byte $0f, $11, $21, $2c ; blue
+		.byte $0f, $30, $10, $00 ; gray
 						; sprite palette
-		.byte $0f,$28,$21,$11
-		.byte $0f,$26,$28,$17
-		.byte $0f,$1B,$2B,$3B
-		.byte $0f,$12,$22,$32
+		.byte $0f, $28, $21, $11
+		.byte $0f, $26, $28, $17
+		.byte $0f, $1b, $2b, $3b
+		.byte $0f, $12, $22, $32
