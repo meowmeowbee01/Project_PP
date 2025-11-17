@@ -152,7 +152,7 @@
 		assign_16i text_address, hello_text 					; put the text in the address
 		jsr write_text
 
-		vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + $8) 		; sets the title text to use the second palette
+		vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 4 * 8 + 1) 		; sets the title text to use the second palette
 		assign_16i paddr, title_attributes
 
 		ldy #0
@@ -160,7 +160,7 @@
 			lda (paddr),y
 			sta PPU_VRAM_IO
 			iny 
-			cpy #8
+			cpy #2
 			bne @loop
 
 		jsr ppu_update  ; update the ppu
@@ -168,7 +168,7 @@
 	.endproc
 
 	title_attributes:
-		.byte %00000101,%00000101,%00000101,%00000101,%00000101,%00000101,%00000101,%00000101
+		.byte %11110000,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111
 
 .segment "RODATA"
 	default_palette: 	; background palette
