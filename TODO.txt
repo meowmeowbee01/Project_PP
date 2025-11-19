@@ -1,0 +1,5 @@
+
+IF ANYONE STARTS WORKING ON A TODO ADD YOUR NAME AT THE END SO WE DONT HAVE 2 PEOPLE DOING THE SAME THING
+
+Make a subroutine/macro that writes given text to the screen with a given color (on a given location)
+make a subroutine/macro that moves the screen to the next nametable (https://www.nesdev.org/wiki/PPU_nametables) (making the screen go from topleft -> topright -> bottomright -> bottomleft -> topleft) (use the scroll bit for this)
