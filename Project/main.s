@@ -21,11 +21,9 @@
 
 .segment "ZEROPAGE"
 	paddr: .res 2 	; pointer to 16 bit address
-	temp: .res 10
-	update: .res 1 
 
 .segment "OAM"
-	oam: .res $ff
+	oam: .res $100
 
 .include "neslib.s"
 
@@ -33,9 +31,8 @@
 	palette: .res $20
 
 .segment "CODE" 	; main code segment for the program
-
-	hello_text:
-	.byte "Hello World__",0
+	hello_text: .byte "Hello World__",0
+	title_attributes: .byte %11110000,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111
 
 	.proc irq
 		rti 		; do nothing if an IRQ happens
@@ -71,13 +68,15 @@
 			inx 
 			bne @clear_memory 	; loop will stop when X goes back to 0
 
-		clear_oam:
-		sta oam, x 
-		inx 
-		inx 
-		inx 
-		inx 
-		bne clear_oam
+		lda #$ff
+		ldx #0
+		clear_oam: 			; clear oam (sprites)
+			sta oam,x
+			inx 
+			inx 
+			inx 
+			inx 
+			bne clear_oam
 
 		@vblankwait2:	; second wait for vblank, PPU is ready after this
 			bit PPU_STATUS
@@ -86,7 +85,40 @@
 		lda #%10001000
   		sta PPU_CONTROL ; enable nmi
 
-		jmp main
+		ldx #0 			; initialize palette table
+		@paletteloop:
+			lda default_palette, x
+			sta palette, x
+			inx 
+			cpx #$20
+			bcc @paletteloop
+
+		jsr ppu_off 			; turn rendering off
+		jsr clear_nametable
+
+		vram_set_address (NAME_TABLE_0_ADDRESS + 16 * $20 + 5) 			; set the vram address
+		assign_16i text_address, hello_text 							; put the text in the address
+		jsr write_text
+
+		vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 4 * 8 + 1) 		; sets the title text to use the second palette
+		assign_16i paddr, title_attributes
+
+		ldy #0
+		@loop: 				; write all attributes to the vram
+			lda (paddr),y
+			sta PPU_VRAM_IO
+			iny 
+			cpy #2
+			bne @loop
+
+		lda #VBLANK_NMI|BG_0000|OBJ_1000 ; set our game settings
+		sta ppu_ctl0
+		lda #BG_ON|OBJ_ON
+		sta ppu_ctl1
+
+		jsr ppu_update
+
+		jmp mainloop
 	.endproc
 
 	.proc nmi
@@ -119,56 +151,9 @@
 		rti 
 	.endproc
 
-	.proc main
-		ldx #0 			; initialize palette table
-		@paletteloop:
-			lda default_palette, x
-			sta palette, x
-			inx 
-			cpx #$20
-			bcc @paletteloop
-
-		resetgame:
-			jsr clear_sprites
-
-			jsr display_title_screen
-
-			lda #VBLANK_NMI|BG_0000|OBJ_1000 ; set our game settings
-			sta ppu_ctl0
-			lda #BG_ON|OBJ_ON
-			sta ppu_ctl1
-
-			jsr ppu_update
-
-		mainloop:
-			jmp mainloop
+	.proc mainloop
+		jmp mainloop
 	.endproc
-
-	.proc display_title_screen
-		jsr ppu_off 		; turn rendering off
-		jsr clear_nametable ; clear nametable
-
-		vram_set_address (NAME_TABLE_0_ADDRESS + 16 * $20 + 5) 	; set the vram address
-		assign_16i text_address, hello_text 					; put the text in the address
-		jsr write_text
-
-		vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 4 * 8 + 1) 		; sets the title text to use the second palette
-		assign_16i paddr, title_attributes
-
-		ldy #0
-		@loop: 				; write all attributes to the vram
-			lda (paddr),y
-			sta PPU_VRAM_IO
-			iny 
-			cpy #2
-			bne @loop
-
-		jsr ppu_update  ; update the ppu
-		rts 
-	.endproc
-
-	title_attributes:
-		.byte %11110000,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111
 
 .segment "RODATA"
 	default_palette: 	; background palette
