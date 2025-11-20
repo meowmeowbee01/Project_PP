@@ -47,8 +47,8 @@
 		sta APU_DM_CONTROL	; disable DMC IRQs
 		lda #$40			
 		sta $4017			; disable APU frame IRQ
-		ldx #$ff 			; Set up stack
-		tsx 
+		ldx #$ff
+		tsx 				; Set up stack pointer
 
 		@vblankwait1:		; first wait for vblank to make sure PPU is ready
 			bit PPU_STATUS
@@ -68,15 +68,7 @@
 			inx 
 			bne @clear_memory 	; loop will stop when X goes back to 0
 
-		lda #$ff
-		ldx #0
-		clear_oam: 			; clear oam (sprites)
-			sta oam,x
-			inx 
-			inx 
-			inx 
-			inx 
-			bne clear_oam
+		jsr clear_sprites 		; clear oam (sprites)
 
 		@vblankwait2:	; second wait for vblank, PPU is ready after this
 			bit PPU_STATUS

@@ -104,7 +104,7 @@ ATTRIBUTE_TABLE_1_ADDRESS 	= $27c0
 		lda ppu_ctl1 		; get second ppu control variable value
 		ora #OBJ_ON|BG_ON 	; enable objects and sprites
 		sta ppu_ctl1 		; store it back in the second ppu control variable
-		jsr wait_frame 		; go to wait frame
+		jsr wait_frame 		; wait a frame
 		rts 				; return from subroutine
 	.endproc
 
@@ -123,32 +123,32 @@ ATTRIBUTE_TABLE_1_ADDRESS 	= $27c0
 
 	.proc clear_nametable
 		lda PPU_STATUS 		; get sprite data
-		lda #$20 			; set the ppu address
+		lda #$20 			; set the ppu address to $2000
 		sta PPU_VRAM_ADDRESS2
 		lda #0
 		sta PPU_VRAM_ADDRESS2
 
-		lda #0 
+		lda #0
 		ldy #$1e
 		rowloop: 				; empty nametable
 			ldx #$20
 			columnloop: 
 				sta PPU_VRAM_IO ; clear current byte
-				dex
+				dex 
 				bne columnloop 	; loop until x is 0
-			dey
+			dey 
 			bne rowloop 		; loop until y is 0
 
 		ldx #$40
-		loop: 		; empty attribute table
+		loop: 					; empty attribute table
 			sta PPU_VRAM_IO
-			dex
-			bne loop ; loop until x is 0 
+			dex 
+			bne loop 			; loop until x is 0 
 		rts 
 	.endproc
 
 	.proc gamepad_poll
-		lda #1 		; this tells the gamepad to send over the info
+		lda #1 				; this tells the gamepad to send over the info
 		sta JOYPAD1
 		lda #0
 		sta JOYPAD1
@@ -163,7 +163,7 @@ ATTRIBUTE_TABLE_1_ADDRESS 	= $27c0
 			pla 			; gets the value from the stack
 
 			ror 			; rotates the carry bit in the current value (from the right)
-			dex
+			dex 
 			bne loop
 		sta gamepad
 		rts 
