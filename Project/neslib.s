@@ -73,7 +73,8 @@ ATTRIBUTE_TABLE_1_ADDRESS 	= $27c0
 	ppu_ctl0: .res 1
 	ppu_ctl1: .res 1 
 	gamepad: .res 1 
-	text_address: .res $2
+	text_address: .res 2
+	text_line: .res 1
 
 	; object 1
 	cx1: .res 1 ; x coord
@@ -174,6 +175,25 @@ ATTRIBUTE_TABLE_1_ADDRESS 	= $27c0
 		loop:
 			lda (text_address),y 	; get current text byte (2 bytes address)
 			beq exit 				; if it's 0, exit
+			; if its $a go to a new line
+			cmp #$a
+			bne skipnewline
+				inc text_line
+				lda PPU_STATUS 					; load ppu status
+				lda #>NAME_TABLE_0_ADDRESS 		; store first high and then low byte into the register for the ppu
+				sta PPU_VRAM_ADDRESS2   
+				lda text_line
+				asl 
+				asl 
+				asl 
+				asl 
+				asl 
+				sec 
+				sbc #1
+				clc 
+				adc #<NAME_TABLE_0_ADDRESS
+				sta PPU_VRAM_ADDRESS2
+			skipnewline:
 			sta PPU_VRAM_IO 		; write it to the ppu io register
 			iny 					; increment y
 			jmp loop 				; loop again

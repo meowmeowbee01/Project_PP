@@ -297,7 +297,7 @@ irq: ;currently nothing yet for the irq
 		cmp #$df 			; compare to the last 4 bits
 		beq resetgame 		; if all those bits are set, reset the game 
 
-		cmp #20 				; if bit 5 and 3 are set
+		cmp #%00010100 			; if bit 5 and 3 are set
 		bne @notgameoversetup 	; dont show game over screen
 			lda #%00001000 		; set the game over flag
 			ora update
@@ -742,21 +742,21 @@ irq: ;currently nothing yet for the irq
 		sta player_dead
 
 		lda #$ff 			; erase the enemy
-		sta oam,x
-		sta oam+4,x
-		sta oam+8,x
-		sta oam+12,x
+		sta oam , x
+		sta oam + 4 , x
+		sta oam + 8 , x
+		sta oam + 12 , x
 		lda #0
 		sta enemydata,y
-		jmp @skip       ;enemy gone so no need to move it further
+		jmp @skip 			; enemy gone so no need to move it further
 
 		@notlevelwithplayer:
 
-		lda oam+16    ;check if the bullet is on the screen
-		cmp #$FF
+		lda oam + $10 		; check if the bullet is on the screen
+		cmp #$ff
 		beq @skip
 
-		lda oam,x ;store the current enemy location
+		lda oam , x 		; store the current enemy location
 		sta cy2
 		lda oam+3,x
 		sta cx2

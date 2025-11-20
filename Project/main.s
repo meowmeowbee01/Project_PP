@@ -31,7 +31,12 @@
 	palette: .res $20
 
 .segment "CODE" 	; main code segment for the program
-	hello_text: .byte "Hello World__",0
+	hello_text:
+		.byte "Hello", $a
+		.byte "World__", $a
+		.byte "on", $a
+		.byte "a", $a
+		.byte "newline", 0
 	title_attributes: .byte %11110000,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111
 
 	.proc irq
@@ -88,7 +93,9 @@
 		jsr ppu_off 			; turn rendering off
 		jsr clear_nametable
 
-		vram_set_address (NAME_TABLE_0_ADDRESS + 16 * $20 + 5) 			; set the vram address
+		lda #0
+		sta text_line
+		vram_set_address (NAME_TABLE_0_ADDRESS) 			; set the vram address
 		assign_16i text_address, hello_text 							; put the text in the address
 		jsr write_text
 
