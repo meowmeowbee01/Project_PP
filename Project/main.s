@@ -1,6 +1,6 @@
 .segment "HEADER"
 	INES_MAPPER = 0				; 0 = NROM
-	INES_MIRROR = 0				; 0 = horizontal mirroring, 1 = vertical mirroring
+	INES_MIRROR = 1				; 0 = horizontal mirroring, 1 = vertical mirroring
 	INES_SRAM   = 0				; 1 = battery backed SRAM at $6000-7FFF
 
 	.byte "NES", $1a			; iNES header identifier
@@ -31,12 +31,12 @@
 	palette: .res $20
 
 .segment "CODE" 	; main code segment for the program
-	hello_text:
+	text:
 		.byte "Hello", $a
-		.byte "World__", $a
-		.byte "on", $a
-		.byte "a", $a
-		.byte "newline", 0
+		.byte "World__", $c
+
+		.byte "new", $a
+		.byte "page", 0
 	title_attributes: .byte %11110000,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111
 
 	.proc irq
@@ -91,13 +91,11 @@
 			bcc @paletteloop
 
 		jsr ppu_off 			; turn rendering off
-		jsr clear_nametable
+		clear_nametable(NAME_TABLE_0_ADDRESS)
+		clear_nametable(NAME_TABLE_1_ADDRESS)
 
-		lda #0
-		sta text_line
-		vram_set_address (NAME_TABLE_0_ADDRESS) 			; set the vram address
-		assign_16i text_address, hello_text 							; put the text in the address
-		jsr write_text
+		assign_16i text_address, text 			; make the text_address pointer point to text
+		jsr write_text							; write the text that's in text_address
 
 		vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 4 * 8 + 1) 		; sets the title text to use the second palette
 		assign_16i paddr, title_attributes

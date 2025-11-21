@@ -34,3 +34,8 @@
 	tax 
 	pla 
 .endmacro
+
+.macro clear_nametable vram_address
+	vram_set_address(vram_address)
+	jsr clear_nametable
+.endmacro
