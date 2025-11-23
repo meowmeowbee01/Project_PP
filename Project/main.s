@@ -49,7 +49,14 @@
 		.byte "that's right:", $a
 		.byte "fourth page", $c
 
-		.byte "okay", $a
+		.byte "final", $a
+		.byte "page", $c
+
+		.byte "PSYCHED:", $a
+		.byte "another page", $c
+
+		.byte "okay,", $a
+		.byte "ACTUAL", $a
 		.byte "final", $a
 		.byte "page", 0
 	title_attributes: .byte %11110000,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111
