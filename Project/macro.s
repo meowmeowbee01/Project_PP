@@ -1,9 +1,9 @@
 .macro vram_set_address newaddress
 	lda PPU_STATUS 			; load ppu status
 	lda #>newaddress 		; store first high and then low byte into the register for the ppu
-	sta PPU_VRAM_ADDRESS2   
+	sta PPU_VRAM_ADDRESS
 	lda #<newaddress
-	sta PPU_VRAM_ADDRESS2
+	sta PPU_VRAM_ADDRESS
 .endmacro
 
 .macro assign_16i dest, value
@@ -15,8 +15,8 @@
 
 .macro vram_clear_address
 	lda #0 					; clears the address
-	sta PPU_VRAM_ADDRESS2
-	sta PPU_VRAM_ADDRESS2
+	sta PPU_VRAM_ADDRESS
+	sta PPU_VRAM_ADDRESS
 .endmacro
 
 .macro save_registers

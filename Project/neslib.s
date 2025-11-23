@@ -10,8 +10,8 @@ PPU_MASK			= $2001		; PPU control register 2 (write)
 PPU_STATUS			= $2002		; PPU status register (read)
 PPU_SPRRAM_ADDRESS	= $2003 	; PPU SPR-RAM address register (write)
 PPU_SPRRAM_IO		= $2004 	; PPU SPR-RAM I/O register (write)
-PPU_VRAM_ADDRESS1	= $2005 	; PPU VRAM address register 1 (write)
-PPU_VRAM_ADDRESS2	= $2006 	; PPU VRAM address register 2 (write)
+PPU_SCROLL 			= $2005 	; PPU scroll (write)
+PPU_VRAM_ADDRESS	= $2006 	; PPU VRAM address register (write)
 PPU_VRAM_IO			= $2007 	; VRAM I/O register (read/write)
 SPRITE_DMA			= $4014 	; sprite DMA register
 

@@ -35,7 +35,10 @@
 .segment "CODE" 	; main code segment for the program
 	INPUT_COOLDOWN = 60 	; frames
 
-	text: 			; $a == 10 == newline, $c == 12 == new page, 0 == end of data
+	text:
+		.incbin "content.ascii" 			; $a == 10 == newline, $c == 12 == new page, 0 == end of data
+		.byte $c
+		
 		.byte "hello", $a
 		.byte "world", $c
 
@@ -161,8 +164,8 @@
 
 		; write current scroll and control settings
 		lda #0
-		sta PPU_VRAM_ADDRESS1
-		sta PPU_VRAM_ADDRESS1
+		sta PPU_SCROLL
+		sta PPU_SCROLL
 		lda ppu_ctl0
 		sta PPU_CONTROL
 		lda ppu_ctl1
@@ -220,7 +223,7 @@
 				inc text_line 
 				lda PPU_STATUS 		; load ppu status
 				lda #>NAME_TABLE_0_ADDRESS
-				sta PPU_VRAM_ADDRESS2 
+				sta PPU_VRAM_ADDRESS 
 				lda text_line
 				asl 
 				asl 
@@ -229,7 +232,7 @@
 				asl 
 				clc 
 				adc #<NAME_TABLE_0_ADDRESS
-				sta PPU_VRAM_ADDRESS2
+				sta PPU_VRAM_ADDRESS
 				jmp skip_write
 			skip_newline:
 				sta PPU_VRAM_IO 	; write it to the ppu io register
