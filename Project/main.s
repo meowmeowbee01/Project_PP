@@ -20,7 +20,9 @@
 	.incbin "PP.chr"
 
 .segment "ZEROPAGE"
-	paddr: .res 2 	; pointer to 16 bit address
+	text_line: .res 1
+	slide: .res 1
+	remaining_input_cooldown: .res 1
 
 .segment "OAM"
 	oam: .res $100
@@ -31,11 +33,24 @@
 	palette: .res $20
 
 .segment "CODE" 	; main code segment for the program
-	text:
-		.byte "Hello", $a
-		.byte "World__", $c
+	INPUT_COOLDOWN = 60 	; frames
+
+	text: 			; $a == 10 == newline, $c == 12 == new page, 0 == end of data
+		.byte "hello", $a
+		.byte "world", $c
 
 		.byte "new", $a
+		.byte "page", $c
+
+		.byte "BOOM!", $a
+		.byte "third", $a
+		.byte "page", $c
+
+		.byte "that's right:", $a
+		.byte "fourth page", $c
+
+		.byte "okay", $a
+		.byte "final", $a
 		.byte "page", 0
 	title_attributes: .byte %11110000,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111
 
@@ -95,7 +110,7 @@
 		clear_nametable(NAME_TABLE_1_ADDRESS)
 
 		assign_16i text_address, text 			; make the text_address pointer point to text
-		jsr write_text							; write the text that's in text_address
+		jsr prepare_slide							; write the text that's in text_address
 
 		vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 4 * 8 + 1) 		; sets the title text to use the second palette
 		assign_16i paddr, title_attributes
@@ -120,6 +135,12 @@
 
 	.proc nmi
 		save_registers
+
+		lda #0
+		cmp remaining_input_cooldown
+		beq skip_decrement
+			dec remaining_input_cooldown
+		skip_decrement:
 
 		; transfer current palette to PPU
 		vram_set_address $3f00
@@ -149,7 +170,67 @@
 	.endproc
 
 	.proc mainloop
+		lda remaining_input_cooldown 	; keep looping till remaining input cooldown is 0
+		bne mainloop
+		jsr gamepad_poll 				; keep looping till a is pressed
+		lda gamepad
+		and #PAD_A
+		beq mainloop
+		lda #INPUT_COOLDOWN 			; set remaining input cooldown
+		sta remaining_input_cooldown
+		jsr ppu_off
+		clear_nametable(NAME_TABLE_0_ADDRESS)
+		inc slide 						; increment slide
+		jsr prepare_slide
+		jsr ppu_update
 		jmp mainloop
+	.endproc
+
+	.proc prepare_slide
+		vram_set_address (NAME_TABLE_0_ADDRESS) 	; set the vram address
+		ldy #0
+		sty text_line
+		ldx #0
+		find_slide_loop: 			; set y to the beginning of the current slide
+			txa 					; check difference between slide and x
+			cmp slide
+			beq loop 				; proceed to main loop if they are equal
+			lda (text_address),y 	; get current text byte (2 bytes address)
+			beq exit 				; if it's 0, exit
+			iny 
+			cmp #$c
+			bne skip_slide_increment
+				inx 
+			skip_slide_increment:
+			jmp find_slide_loop
+		loop:
+			lda (text_address),y 	; get current text byte (2 bytes address)
+			beq exit 				; if it's 0, exit
+			cmp #$c 				; if it's the end of the slide, exit
+			beq exit
+			cmp #$a					; if its $a go to a new line ($a == 10 == newline on the ascii table)
+			bne skip_newline
+				inc text_line 
+				lda PPU_STATUS 		; load ppu status
+				lda #>NAME_TABLE_0_ADDRESS
+				sta PPU_VRAM_ADDRESS2 
+				lda text_line
+				asl 
+				asl 
+				asl 
+				asl 
+				asl 
+				clc 
+				adc #<NAME_TABLE_0_ADDRESS
+				sta PPU_VRAM_ADDRESS2
+				jmp skip_write
+			skip_newline:
+				sta PPU_VRAM_IO 	; write it to the ppu io register
+			skip_write:
+			iny 					; increment y
+			jmp loop 				; loop again
+		exit:
+			rts 					; return from subroutine
 	.endproc
 
 .segment "RODATA"

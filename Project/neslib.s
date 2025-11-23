@@ -69,25 +69,12 @@ NAME_TABLE_1_ADDRESS 		= $2400
 ATTRIBUTE_TABLE_1_ADDRESS 	= $27c0
 
 .segment "ZEROPAGE"
+	paddr: .res 2 		; pointer to 16 bit address
 	nmi_ready: .res 1
 	ppu_ctl0: .res 1
 	ppu_ctl1: .res 1 
 	gamepad: .res 1 
 	text_address: .res 2
-	text_line: .res 1
-	text_page: .res 1
-
-	; object 1
-	cx1: .res 1 ; x coord
-	cy1: .res 1 ; y coord
-	cw1: .res 1 ; width
-	ch1: .res 1 ; height
-
-	; object 2
-	cx2: .res 1 ; x coord
-	cy2: .res 1 ; y coord
-	cw2: .res 1 ; width
-	ch2: .res 1 ; height
 
 .segment "CODE"
 	.proc wait_frame 		; sets nmi flag and waits until it's reset
@@ -163,69 +150,6 @@ ATTRIBUTE_TABLE_1_ADDRESS 	= $27c0
 			bne loop
 		sta gamepad
 		rts 
-	.endproc
-
-	.proc write_text
-		lda #0
-		sta text_line
-		sta text_page
-		vram_set_address (NAME_TABLE_0_ADDRESS) 	; set the vram address
-		ldy #0
-		loop:
-			lda (text_address),y 	; get current text byte (2 bytes address)
-			beq exit 				; if it's 0, exit
-			cmp #$a					; if its $a go to a new line ($a == 10 == newline on the ascii table)
-			bne skipnewline
-				inc text_line 
-
-				lda PPU_STATUS 		; load ppu status
-				lda text_page
-				asl 
-				asl 				; add 1 (ONE) of these asl operations when INES_MIRROR is 0
-				clc 
-				adc #>NAME_TABLE_0_ADDRESS
-				sta PPU_VRAM_ADDRESS2 
-				lda text_line
-				asl 
-				asl 
-				asl 
-				asl 
-				asl 
-				clc 
-				adc #<NAME_TABLE_0_ADDRESS
-				sta PPU_VRAM_ADDRESS2
-				jmp skipwrite
-			skipnewline:
-			cmp #$c					; if its $c go to a new page ($c == 12 == new page on the ascii table)
-			bne skipnewpage
-				inc text_page
-				lda #0
-				sta text_line
-				
-				lda PPU_STATUS
-				lda text_page
-				asl 
-				asl 
-				clc 
-				adc #>NAME_TABLE_0_ADDRESS
-				sta PPU_VRAM_ADDRESS2
-				lda text_line
-				asl 
-				asl 
-				asl 
-				asl 
-				asl 
-				clc 
-				adc #<NAME_TABLE_0_ADDRESS
-				sta PPU_VRAM_ADDRESS2
-				jmp skipwrite
-			skipnewpage:
-			sta PPU_VRAM_IO 		; write it to the ppu io register
-			skipwrite:
-			iny 					; increment y
-			jmp loop 				; loop again
-		exit:
-			rts 					; return from subroutine
 	.endproc
 
 	.proc clear_sprites
