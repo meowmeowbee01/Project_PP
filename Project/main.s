@@ -38,7 +38,7 @@
 	text:
 		.incbin "content.ascii" 			; $a == 10 == newline, $c == 12 == new page, 0 == end of data
 		.byte $c
-		
+
 		.byte "hello", $a
 		.byte "world", $c
 
@@ -182,18 +182,21 @@
 	.proc mainloop
 		lda remaining_input_cooldown 	; keep looping till remaining input cooldown is 0
 		bne mainloop
-		jsr gamepad_poll 				; keep looping till a is pressed
+		jsr gamepad_poll 				; keep looping till a is pressed or gun is triggered
 		lda gamepad
 		and #PAD_A
+		bne next_slide
+		lda GUN_TRIGGER
 		beq mainloop
-		lda #INPUT_COOLDOWN 			; set remaining input cooldown
-		sta remaining_input_cooldown
-		jsr ppu_off
-		clear_nametable(NAME_TABLE_0_ADDRESS)
-		inc slide 						; increment slide
-		jsr prepare_slide
-		jsr ppu_update
-		jmp mainloop
+		next_slide:
+			lda #INPUT_COOLDOWN 			; set remaining input cooldown
+			sta remaining_input_cooldown
+			jsr ppu_off
+			clear_nametable(NAME_TABLE_0_ADDRESS)
+			inc slide 						; increment slide
+			jsr prepare_slide
+			jsr ppu_update
+			jmp mainloop
 	.endproc
 
 	.proc prepare_slide
