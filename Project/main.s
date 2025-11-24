@@ -2,6 +2,7 @@ NEWLINE = $a
 NEWPAGE = $c
 TAB = $9
 SPACE = $20
+ESCAPE_CHAR = '\'
 
 .segment "HEADER"
 	INES_MAPPER = 0				; 0 = NROM
@@ -163,19 +164,32 @@ SPACE = $20
 	.proc mainloop
 		lda remaining_input_cooldown 	; keep looping till remaining input cooldown is 0
 		bne mainloop
-		jsr gamepad_poll 				; keep looping till a is pressed or gun is triggered
+		jsr gamepad_poll 				; keep looping till there is an input
 		lda gamepad
-		and #PAD_A
+		and #PAD_A|PAD_RIGHT
 		bne next_slide
+		lda gamepad
+		and #PAD_B|PAD_LEFT
+		bne prev_slide
 		lda JOYPAD2
 		and #GUN_TRIGGER
-		beq mainloop
+		bne next_slide
+		jmp mainloop
 		next_slide:
 			lda #INPUT_COOLDOWN 			; set remaining input cooldown
 			sta remaining_input_cooldown
 			jsr ppu_off
 			clear_nametable(NAME_TABLE_0_ADDRESS)
 			inc slide 						; increment slide
+			jsr prepare_slide
+			jsr ppu_update
+			jmp mainloop
+		prev_slide:
+			lda #INPUT_COOLDOWN 			; set remaining input cooldown
+			sta remaining_input_cooldown
+			jsr ppu_off
+			clear_nametable(NAME_TABLE_0_ADDRESS)
+			dec slide 						; decrement slide
 			jsr prepare_slide
 			jsr ppu_update
 			jmp mainloop
