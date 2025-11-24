@@ -1,7 +1,7 @@
 NEWLINE = $a
 NEWPAGE = $c
-TAB = $9
-SPACE = $20
+TAB = '	'
+SPACE = ' '
 ESCAPE_CHAR = '\'
 
 .segment "HEADER"
@@ -44,7 +44,6 @@ ESCAPE_CHAR = '\'
 	text:
 		.incbin "content.ascii"
 		.byte 0
-	title_attributes: .byte %11110000,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111
 
 	.proc irq
 		rti 		; do nothing if an IRQ happens
@@ -103,9 +102,6 @@ ESCAPE_CHAR = '\'
 
 		assign_16i text_address, text 			; make the text_address pointer point to text
 		jsr prepare_slide							; write the text that's in text_address
-
-		vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS + 4 * 8 + 1) 		; sets the title text to use the second palette
-		assign_16i paddr, title_attributes
 
 		ldy #0
 		@loop: 				; write all attributes to the vram
@@ -202,7 +198,7 @@ ESCAPE_CHAR = '\'
 		inc text_line
 		find_slide_loop: 			; set y to the beginning of the current slide
 			cpx slide 				; check difference between slide and x
-			beq set_attributes 		; proceed to main loop if they are equal
+			beq attributes 		; proceed if they are equal
 			lda (text_address),y 	; get current text byte (2 bytes address)
 			beq exit 				; if it's 0, exit
 			iny 
@@ -215,6 +211,10 @@ ESCAPE_CHAR = '\'
 				inx 
 			skip_slide_increment:
 			jmp find_slide_loop
+		
+		attributes:
+		jsr set_attributes
+
 		text_loop:
 			lda (text_address),y 	; get current text byte (2 bytes address)
 			beq exit 				; if it's 0, exit
@@ -233,46 +233,47 @@ ESCAPE_CHAR = '\'
 				sta PPU_VRAM_IO 	; write it to the ppu io register
 			skip_write:
 			iny 					; increment y
-			jmp text_loop 				; loop again
+			jmp text_loop 			; loop again
 			write_tab:
 				ldx #0				
-				lda #SPACE		; write a space
-				@inside_loop:	; do enough spaces for the tab
+				lda #SPACE			; write a space
+				@inside_loop:		; do enough spaces for the tab
 					sta PPU_VRAM_IO	
 					inx 			; increment counter
 					cpx #TAB_WIDTH	; compare counter to tab width
-					bne @inside_loop 	; if we haven't done enough spaces, do it agains
+					bne @inside_loop ; if we haven't done enough spaces, do it agains
 				iny 
 				jmp text_loop
 		exit:
 			rts 					; return from subroutine
+	.endproc
 
-		set_attributes:
-			save_registers
-			ldy slide
-			lda palettes, y
-			sta current_palette
-			vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS) 		; sets the title text to use the second palette
-			ora current_palette
-			asl 
-			asl 
-			ora current_palette
-			asl 
-			asl 
-			ora current_palette
-			asl 
-			asl 
-			ora current_palette
-			ldy #0
-			@loop: 				; write all attributes to the vram
-				sta PPU_VRAM_IO
-				iny 
-				cpy #$40
-				bne @loop
+	.proc set_attributes
+		save_registers
+		ldy slide
+		lda palettes, y
+		sta current_palette
+		vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS)
+		ora current_palette
+		asl 
+		asl 
+		ora current_palette
+		asl 
+		asl 
+		ora current_palette
+		asl 
+		asl 
+		ora current_palette
+		ldy #0
+		@loop: 				; write all attributes to the vram
+			sta PPU_VRAM_IO
+			iny 
+			cpy #$40
+			bne @loop
 
-			restore_regsiters
-			jsr vram_set_address_text 	; set the vram address
-			jmp text_loop
+		restore_regsiters
+		jsr vram_set_address_text 	; set the vram address
+		rts 
 	.endproc
 
 	.proc vram_set_address_text
