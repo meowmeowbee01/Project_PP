@@ -166,7 +166,8 @@ SPACE = $20
 		lda gamepad
 		and #PAD_A
 		bne next_slide
-		lda GUN_TRIGGER
+		lda JOYPAD2
+		and #GUN_TRIGGER
 		beq mainloop
 		next_slide:
 			lda #INPUT_COOLDOWN 			; set remaining input cooldown
@@ -232,13 +233,12 @@ SPACE = $20
 			jmp loop 				; loop again
 			write_tab:
 				ldx #0				
+				lda #SPACE		; write a space
 				@inside_loop:	; do enough spaces for the tab
-					lda #SPACE		; write a space
 					sta PPU_VRAM_IO	
 					inx 			; increment counter
-					txa 
-					cmp #TAB_WIDTH	; compare counter to tab width
-					bne @inside_loop; if we haven't done enough spaces, do it agains
+					cpx #TAB_WIDTH	; compare counter to tab width
+					bne @inside_loop 	; if we haven't done enough spaces, do it agains
 				iny 
 				jmp loop
 		exit:
