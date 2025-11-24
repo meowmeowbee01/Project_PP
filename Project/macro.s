@@ -39,3 +39,14 @@
 	vram_set_address(vram_address)
 	jsr clear_nametable
 .endmacro
+
+.macro increment_16i_pointer pointer
+	lda pointer
+	cmp #$ff
+	bne :+
+		inc pointer + 1
+	:
+	clc
+	adc #1
+	sta pointer
+.endmacro
