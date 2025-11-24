@@ -182,14 +182,13 @@ SPACE = $20
 	.endproc
 
 	.proc prepare_slide
-		vram_set_address (NAME_TABLE_0_ADDRESS) 	; set the vram address
 		ldy #0
-		sty text_line
 		ldx #0
+		sty text_line
+		inc text_line
 		find_slide_loop: 			; set y to the beginning of the current slide
-			txa 					; check difference between slide and x
-			cmp slide
-			beq set_attributes 				; proceed to main loop if they are equal
+			cpx slide 				; check difference between slide and x
+			beq set_attributes 		; proceed to main loop if they are equal
 			lda (text_address),y 	; get current text byte (2 bytes address)
 			beq exit 				; if it's 0, exit
 			iny 
@@ -214,18 +213,7 @@ SPACE = $20
 			cmp #NEWLINE			; check if it's a newline character
 			bne skip_newline		; if it isn't, branch
 				inc text_line 		; increment text line
-				lda PPU_STATUS 		; load ppu status
-				lda #>NAME_TABLE_0_ADDRESS	; get high byte
-				sta PPU_VRAM_ADDRESS; write it
-				lda text_line		; load the text line
-				asl 				; multiply it with 32 (to get the y coord)
-				asl 
-				asl 
-				asl 
-				asl 
-				clc 
-				adc #<NAME_TABLE_0_ADDRESS	; add the low byte of name table to the y coord
-				sta PPU_VRAM_ADDRESS		; write it
+				jsr vram_set_address_text
 				jmp skip_write
 			skip_newline:
 				sta PPU_VRAM_IO 	; write it to the ppu io register
@@ -250,15 +238,15 @@ SPACE = $20
 			ldy slide
 			lda palettes, y
 			sta current_palette
-			vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS) 		; sets the title text to use the second paletteµ
+			vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS) 		; sets the title text to use the second palette
 			ora current_palette
-			asl
+			asl 
 			asl 
 			ora current_palette
-			asl
+			asl 
 			asl 
 			ora current_palette
-			asl
+			asl 
 			asl 
 			ora current_palette
 			ldy #0
@@ -269,8 +257,24 @@ SPACE = $20
 				bne @loop
 
 			restore_regsiters
-			vram_set_address (NAME_TABLE_0_ADDRESS) 	; set the vram address
+			jsr vram_set_address_text 	; set the vram address
 			jmp text_loop
+	.endproc
+
+	.proc vram_set_address_text
+		lda PPU_STATUS 		; load ppu status
+		lda #>NAME_TABLE_0_ADDRESS	; get high byte
+		sta PPU_VRAM_ADDRESS; write it
+		lda text_line		; load the text line
+		asl 				; multiply it with 32 (to get the y coord)
+		asl 
+		asl 
+		asl 
+		asl 
+		clc 
+		adc #<NAME_TABLE_0_ADDRESS	; add the low byte of name table to the y coord
+		sta PPU_VRAM_ADDRESS		; write it
+		rts 
 	.endproc
 
 .segment "RODATA"
