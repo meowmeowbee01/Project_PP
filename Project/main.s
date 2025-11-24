@@ -1,3 +1,8 @@
+NEWLINE = $a
+NEWPAGE = $c
+TAB = $9
+SPACE = $20
+
 .segment "HEADER"
 	INES_MAPPER = 0				; 0 = NROM
 	INES_MIRROR = 1				; 0 = horizontal mirroring, 1 = vertical mirroring
@@ -28,40 +33,15 @@
 	oam: .res $100
 
 .include "neslib.s"
+.include "settings.s"
 
 .segment "BSS"
 	palette: .res $20
 
 .segment "CODE" 	; main code segment for the program
-	INPUT_COOLDOWN = 60 	; frames
-
 	text:
-		.incbin "content.ascii" 			; $a == 10 == newline, $c == 12 == new page, 0 == end of data
-		.byte $c
-
-		.byte "hello", $a
-		.byte "world", $c
-
-		.byte "new", $a
-		.byte "page", $c
-
-		.byte "BOOM!", $a
-		.byte "third", $a
-		.byte "page", $c
-
-		.byte "that's right:", $a
-		.byte "fourth page", $c
-
-		.byte "final", $a
-		.byte "page", $c
-
-		.byte "PSYCHED:", $a
-		.byte "another page", $c
-
-		.byte "okay,", $a
-		.byte "ACTUAL", $a
-		.byte "final", $a
-		.byte "page", 0
+		.incbin "content.ascii"
+		.byte 0
 	title_attributes: .byte %11110000,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111,%11111111
 
 	.proc irq
@@ -211,17 +191,25 @@
 			lda (text_address),y 	; get current text byte (2 bytes address)
 			beq exit 				; if it's 0, exit
 			iny 
-			cmp #$c
-			bne skip_slide_increment
+			cmp #NEWPAGE
+			beq increment_slide
+			cmp #TYPEABLE_NEWPAGE
+			beq increment_slide
+			jmp skip_slide_increment
+			increment_slide:
 				inx 
 			skip_slide_increment:
 			jmp find_slide_loop
 		loop:
 			lda (text_address),y 	; get current text byte (2 bytes address)
 			beq exit 				; if it's 0, exit
-			cmp #$c 				; if it's the end of the slide, exit
+			cmp #NEWPAGE 			; if it's the end of the slide, exit
 			beq exit
-			cmp #$a					; if its $a go to a new line ($a == 10 == newline on the ascii table)
+			cmp #TYPEABLE_NEWPAGE
+			beq exit
+			cmp #TAB
+			beq write_tab
+			cmp #NEWLINE					; if its $a go to a new line ($a == 10 == newline on the ascii table)
 			bne skip_newline
 				inc text_line 
 				lda PPU_STATUS 		; load ppu status
@@ -242,6 +230,17 @@
 			skip_write:
 			iny 					; increment y
 			jmp loop 				; loop again
+			write_tab:
+				ldx #0
+				@inside_loop:
+					lda #SPACE
+					sta PPU_VRAM_IO
+					inx 
+					txa 
+					cmp #TAB_WIDTH
+					bne @inside_loop
+				iny 
+				jmp loop
 		exit:
 			rts 					; return from subroutine
 	.endproc

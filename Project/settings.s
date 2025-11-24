@@ -1,0 +1,3 @@
+TYPEABLE_NEWPAGE = '$'
+INPUT_COOLDOWN = 30 	; frames
+TAB_WIDTH = 4
