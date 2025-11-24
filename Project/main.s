@@ -204,26 +204,26 @@ SPACE = $20
 			lda (text_address),y 	; get current text byte (2 bytes address)
 			beq exit 				; if it's 0, exit
 			cmp #NEWPAGE 			; if it's the end of the slide, exit
-			beq exit
-			cmp #TYPEABLE_NEWPAGE
-			beq exit
-			cmp #TAB
-			beq write_tab
-			cmp #NEWLINE					; if its $a go to a new line ($a == 10 == newline on the ascii table)
-			bne skip_newline
-				inc text_line 
+			beq exit				
+			cmp #TYPEABLE_NEWPAGE	; check if its a typeable newpage character
+			beq exit				
+			cmp #TAB				; check if tab was pressed
+			beq write_tab			; write the tab
+			cmp #NEWLINE			; check if it's a newline character
+			bne skip_newline		; if it isn't, branch
+				inc text_line 		; increment text line
 				lda PPU_STATUS 		; load ppu status
-				lda #>NAME_TABLE_0_ADDRESS
-				sta PPU_VRAM_ADDRESS 
-				lda text_line
-				asl 
+				lda #>NAME_TABLE_0_ADDRESS	; get high byte
+				sta PPU_VRAM_ADDRESS; write it
+				lda text_line		; load the text line
+				asl 				; multiply it with 32 (to get the y coord)
 				asl 
 				asl 
 				asl 
 				asl 
 				clc 
-				adc #<NAME_TABLE_0_ADDRESS
-				sta PPU_VRAM_ADDRESS
+				adc #<NAME_TABLE_0_ADDRESS	; add the low byte of name table to the y coord
+				sta PPU_VRAM_ADDRESS		; write it
 				jmp skip_write
 			skip_newline:
 				sta PPU_VRAM_IO 	; write it to the ppu io register
@@ -231,14 +231,14 @@ SPACE = $20
 			iny 					; increment y
 			jmp loop 				; loop again
 			write_tab:
-				ldx #0
-				@inside_loop:
-					lda #SPACE
-					sta PPU_VRAM_IO
-					inx 
+				ldx #0				
+				@inside_loop:	; do enough spaces for the tab
+					lda #SPACE		; write a space
+					sta PPU_VRAM_IO	
+					inx 			; increment counter
 					txa 
-					cmp #TAB_WIDTH
-					bne @inside_loop
+					cmp #TAB_WIDTH	; compare counter to tab width
+					bne @inside_loop; if we haven't done enough spaces, do it agains
 				iny 
 				jmp loop
 		exit:
