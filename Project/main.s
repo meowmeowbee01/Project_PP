@@ -28,6 +28,7 @@ SPACE = $20
 	text_line: .res 1
 	slide: .res 1
 	remaining_input_cooldown: .res 1
+	current_palette: .res 1
 
 .segment "OAM"
 	oam: .res $100
@@ -188,7 +189,7 @@ SPACE = $20
 		find_slide_loop: 			; set y to the beginning of the current slide
 			txa 					; check difference between slide and x
 			cmp slide
-			beq loop 				; proceed to main loop if they are equal
+			beq set_attributes 				; proceed to main loop if they are equal
 			lda (text_address),y 	; get current text byte (2 bytes address)
 			beq exit 				; if it's 0, exit
 			iny 
@@ -201,7 +202,7 @@ SPACE = $20
 				inx 
 			skip_slide_increment:
 			jmp find_slide_loop
-		loop:
+		text_loop:
 			lda (text_address),y 	; get current text byte (2 bytes address)
 			beq exit 				; if it's 0, exit
 			cmp #NEWPAGE 			; if it's the end of the slide, exit
@@ -230,7 +231,7 @@ SPACE = $20
 				sta PPU_VRAM_IO 	; write it to the ppu io register
 			skip_write:
 			iny 					; increment y
-			jmp loop 				; loop again
+			jmp text_loop 				; loop again
 			write_tab:
 				ldx #0				
 				lda #SPACE		; write a space
@@ -240,9 +241,36 @@ SPACE = $20
 					cpx #TAB_WIDTH	; compare counter to tab width
 					bne @inside_loop 	; if we haven't done enough spaces, do it agains
 				iny 
-				jmp loop
+				jmp text_loop
 		exit:
 			rts 					; return from subroutine
+
+		set_attributes:
+			save_registers
+			ldy slide
+			lda palettes, y
+			sta current_palette
+			vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS) 		; sets the title text to use the second paletteµ
+			ora current_palette
+			asl
+			asl 
+			ora current_palette
+			asl
+			asl 
+			ora current_palette
+			asl
+			asl 
+			ora current_palette
+			ldy #0
+			@loop: 				; write all attributes to the vram
+				sta PPU_VRAM_IO
+				iny 
+				cpy #$40
+				bne @loop
+
+			restore_regsiters
+			vram_set_address (NAME_TABLE_0_ADDRESS) 	; set the vram address
+			jmp text_loop
 	.endproc
 
 .segment "RODATA"
