@@ -192,9 +192,15 @@ SPACE = ' '
 
 	.proc prepare_slide
 		ldy #0
-		ldx #0
 		sty text_line
-		inc text_line
+		ldx #0
+		padding_loop:
+			inc text_line
+			lda text_line
+			inx 
+			cmp #PADDING_TOP
+			bne padding_loop
+		ldx #0
 		find_slide_loop: 			; set y to the beginning of the current slide
 			cpx slide 				; check difference between slide and x
 			beq attributes 			; proceed if they are equal
@@ -300,6 +306,7 @@ SPACE = ' '
 		asl 
 		clc 
 		adc #<NAME_TABLE_0_ADDRESS	; add the low byte of name table to the y coord
+		adc #PADDING_LEFT
 		sta PPU_VRAM_ADDRESS		; write it
 		rts 
 	.endproc
