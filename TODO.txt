@@ -1,11 +1,11 @@
 
 IF ANYONE STARTS WORKING ON A TODO ADD YOUR NAME AT THE END SO WE DONT HAVE 2 PEOPLE DOING THE SAME THING
-
+fix the issue of only supporting 256 characters
 make a subroutine/macro that moves the screen to the next nametable (https://www.nesdev.org/wiki/PPU_nametables) (use the scroll bit for this)
-(DAN) make a macro to detect "\s" in content.ascii to detect the new page
 (DAN or ARNO) Presentation name
 
 
 DONE:
 (DAN) Fix the lightgun
 (YANNICK) CoLoRs MaAaAaN
+(DAN) make a macro to detect "\s" in content.ascii to detect the new page
