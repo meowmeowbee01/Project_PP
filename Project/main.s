@@ -2,7 +2,6 @@ NEWLINE = $a
 NEWPAGE = $c
 TAB = '	'
 SPACE = ' '
-ESCAPE_CHAR = '\'
 
 .segment "HEADER"
 	INES_MAPPER = 0				; 0 = NROM
@@ -198,14 +197,20 @@ ESCAPE_CHAR = '\'
 		inc text_line
 		find_slide_loop: 			; set y to the beginning of the current slide
 			cpx slide 				; check difference between slide and x
-			beq attributes 		; proceed if they are equal
+			beq attributes 			; proceed if they are equal
 			lda (text_address),y 	; get current text byte (2 bytes address)
 			beq exit 				; if it's 0, exit
 			iny 
 			cmp #NEWPAGE
 			beq increment_slide
-			cmp #TYPEABLE_NEWPAGE
-			beq increment_slide
+			cmp #ESCAPE_CHAR
+			bne skip_escape_find
+				lda (text_address),y
+				cmp #SLIDE_SEPERATOR
+				bne skip_escape_find
+				iny 
+				jmp increment_slide
+			skip_escape_find:
 			jmp skip_slide_increment
 			increment_slide:
 				inx 
@@ -220,10 +225,16 @@ ESCAPE_CHAR = '\'
 			beq exit 				; if it's 0, exit
 			cmp #NEWPAGE 			; if it's the end of the slide, exit
 			beq exit				
-			cmp #TYPEABLE_NEWPAGE	; check if its a typeable newpage character
-			beq exit				
 			cmp #TAB				; check if tab was pressed
 			beq write_tab			; write the tab
+			cmp #ESCAPE_CHAR
+			bne skip_escape
+				iny 
+				lda (text_address),y
+				dey 
+				cmp #SLIDE_SEPERATOR
+				beq exit
+			skip_escape:
 			cmp #NEWLINE			; check if it's a newline character
 			bne skip_newline		; if it isn't, branch
 				inc text_line 		; increment text line
@@ -244,6 +255,7 @@ ESCAPE_CHAR = '\'
 					bne @inside_loop ; if we haven't done enough spaces, do it agains
 				iny 
 				jmp text_loop
+		
 		exit:
 			rts 					; return from subroutine
 	.endproc

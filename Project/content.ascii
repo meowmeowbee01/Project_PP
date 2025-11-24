@@ -1,11 +1,15 @@
-contents loaded from file?
-in this economy???
-3
-4
-5$	peepee
+	contents loaded from file?
+	in this economy???
+	3
+	4
+	5\s
+	peepee
 	poopoo
 	does
 	it
-	work$	this is the 
+	work\s
+	this is the 
 	THIRD
-	slide
+	slide\s
+hello\s
+world
