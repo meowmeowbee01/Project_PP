@@ -50,3 +50,14 @@
 	adc #1
 	sta pointer
 .endmacro
+
+.macro decrement_16i_pointer pointer
+	lda pointer
+	cmp #$00
+	bne :+
+		dec pointer + 1
+	:
+	clc
+	sbc #1
+	sta pointer
+.endmacro

@@ -175,8 +175,6 @@ SPACE = ' '
 			sta remaining_input_cooldown
 			jsr ppu_off
 			clear_nametable(NAME_TABLE_0_ADDRESS)
-			;inc slide 						; increment slide
-			;jsr prepare_slide
 			jsr go_to_next_slide
 			jsr display_current_slide
 			jsr ppu_update
@@ -186,8 +184,7 @@ SPACE = ' '
 			sta remaining_input_cooldown
 			jsr ppu_off
 			clear_nametable(NAME_TABLE_0_ADDRESS)
-			dec slide 						; decrement slide
-			;jsr prepare_slide
+			jsr go_to_previous_slide
 			jsr display_current_slide
 			jsr ppu_update
 			jmp mainloop
@@ -287,6 +284,7 @@ SPACE = ' '
 	.endproc
 
 	.proc go_to_next_slide
+		;save_registers
 		ldy #0
 				sty text_line
 				ldx #0
@@ -334,7 +332,45 @@ SPACE = ' '
 			jsr set_attributes
 
 		exit:
-			rts
+		;restore_regsiters
+		rts
+	.endproc
+
+	.proc go_to_previous_slide
+		save_registers
+		lda slide
+		cmp #0
+		bne not_first_slide
+			ldy #1
+			slide_loop1:
+				save_registers
+				jsr go_to_next_slide
+				restore_regsiters
+				iny
+				cpy number_of_slides
+				bne slide_loop1
+				jmp exit
+		not_first_slide:
+		pha 
+		assign_16i character_pointer, text
+		pla
+		sbc #1
+		ldx #0
+		stx slide
+			slide_loop2:
+				cmp #0
+				beq exit
+				pha
+				jsr go_to_next_slide
+				pla
+				sec
+				sbc #1
+				cmp #1
+				bcs slide_loop2
+				jmp exit
+		exit:
+		restore_regsiters
+		rts
 	.endproc
 
 	.proc display_current_slide
