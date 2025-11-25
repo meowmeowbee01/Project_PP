@@ -100,9 +100,7 @@ SPACE = ' '
 		clear_nametable(NAME_TABLE_0_ADDRESS)
 		clear_nametable(NAME_TABLE_1_ADDRESS)
 
-		assign_16i text_address, text 			; make the text_address pointer point to text
-		assign_16i character_pointer, text
-		;jsr prepare_slide							; write the text that's in text_address
+		jsr setup_first_slide
 		jsr display_current_slide
 		ldy #0
 		@loop: 				; write all attributes to the vram
@@ -195,83 +193,109 @@ SPACE = ' '
 			jmp mainloop
 	.endproc
 
-	.proc prepare_slide
-		ldy #0
-		sty text_line
-		ldx #0
-		padding_loop:
-			inc text_line
-			lda text_line
-			inx 
-			cmp #PADDING_TOP
-			bne padding_loop
-		ldx #0
-		find_slide_loop: 			; set y to the beginning of the current slide
-			cpx slide 				; check difference between slide and x
-			beq attributes 			; proceed if they are equal
-			lda (text_address),y 	; get current text byte (2 bytes address)
-			beq exit 				; if it's 0, exit
-			iny 
-			cmp #NEWPAGE
-			beq increment_slide
-			cmp #ESCAPE_CHAR
-			bne skip_escape_find
-				lda (text_address),y
-				cmp #SLIDE_SEPERATOR
-				bne skip_escape_find
-				iny 
-				jmp increment_slide
-			skip_escape_find:
-			jmp skip_slide_increment
-			increment_slide:
-				inx 
-			skip_slide_increment:
-			jmp find_slide_loop
+	; .proc prepare_slide
+	; 	ldy #0
+	; 	sty text_line
+	; 	ldx #0
+	; 	padding_loop:
+	; 		inc text_line
+	; 		lda text_line
+	; 		inx 
+	; 		cmp #PADDING_TOP
+	; 		bne padding_loop
+	; 	ldx #0
+	; 	find_slide_loop: 			; set y to the beginning of the current slide
+	; 		cpx slide 				; check difference between slide and x
+	; 		beq attributes 			; proceed if they are equal
+	; 		lda (text_address),y 	; get current text byte (2 bytes address)
+	; 		beq exit 				; if it's 0, exit
+	; 		iny 
+	; 		cmp #NEWPAGE
+	; 		beq increment_slide
+	; 		cmp #ESCAPE_CHAR
+	; 		bne skip_escape_find
+	; 			lda (text_address),y
+	; 			cmp #SLIDE_SEPERATOR
+	; 			bne skip_escape_find
+	; 			iny 
+	; 			jmp increment_slide
+	; 		skip_escape_find:
+	; 		jmp skip_slide_increment
+	; 		increment_slide:
+	; 			inx 
+	; 		skip_slide_increment:
+	; 		jmp find_slide_loop
 		
-		attributes:
-		jsr set_attributes
+	; 	attributes:
+	; 	jsr set_attributes
 
-		text_loop:
-			lda (text_address),y 	; get current text byte (2 bytes address)
-			beq exit 				; if it's 0, exit
-			cmp #NEWPAGE 			; if it's the end of the slide, exit
-			beq exit				
-			cmp #TAB				; check if tab was pressed
-			beq write_tab			; write the tab
-			cmp #ESCAPE_CHAR
-			bne skip_escape
-				iny 
-				lda (text_address),y
-				dey 
-				cmp #SLIDE_SEPERATOR
-				beq exit
-			skip_escape:
-			cmp #NEWLINE			; check if it's a newline character
-			bne skip_newline		; if it isn't, branch
-				inc text_line 		; increment text line
-				jsr vram_set_address_text
-				jmp skip_write
-			skip_newline:
-				sta PPU_VRAM_IO 	; write it to the ppu io register
-			skip_write:
-			iny 					; increment y
-			jmp text_loop 			; loop again
-			write_tab:
-				ldx #0				
-				lda #SPACE			; write a space
-				@inside_loop:		; do enough spaces for the tab
-					sta PPU_VRAM_IO	
-					inx 			; increment counter
-					cpx #TAB_WIDTH	; compare counter to tab width
-					bne @inside_loop ; if we haven't done enough spaces, do it agains
-				iny 
-				jmp text_loop
+	; 	text_loop:
+	; 		lda (text_address),y 	; get current text byte (2 bytes address)
+	; 		beq exit 				; if it's 0, exit
+	; 		cmp #NEWPAGE 			; if it's the end of the slide, exit
+	; 		beq exit				
+	; 		cmp #TAB				; check if tab was pressed
+	; 		beq write_tab			; write the tab
+	; 		cmp #ESCAPE_CHAR
+	; 		bne skip_escape
+	; 			iny 
+	; 			lda (text_address),y
+	; 			dey 
+	; 			cmp #SLIDE_SEPERATOR
+	; 			beq exit
+	; 		skip_escape:
+	; 		cmp #NEWLINE			; check if it's a newline character
+	; 		bne skip_newline		; if it isn't, branch
+	; 			inc text_line 		; increment text line
+	; 			jsr vram_set_address_text
+	; 			jmp skip_write
+	; 		skip_newline:
+	; 			sta PPU_VRAM_IO 	; write it to the ppu io register
+	; 		skip_write:
+	; 		iny 					; increment y
+	; 		jmp text_loop 			; loop again
+	; 		write_tab:
+	; 			ldx #0				
+	; 			lda #SPACE			; write a space
+	; 			@inside_loop:		; do enough spaces for the tab
+	; 				sta PPU_VRAM_IO	
+	; 				inx 			; increment counter
+	; 				cpx #TAB_WIDTH	; compare counter to tab width
+	; 				bne @inside_loop ; if we haven't done enough spaces, do it agains
+	; 			iny 
+	; 			jmp text_loop
 		
-		exit:
-			rts 					; return from subroutine
+	; 	exit:
+	; 		rts 					; return from subroutine
+	; .endproc
+
+	.proc setup_first_slide
+		assign_16i text_address, text 			; make the text_address pointer point to text
+		assign_16i character_pointer, text
+		
+		ldy #0
+				sty text_line
+				ldx #0
+				padding_loop:
+					inc text_line
+					lda text_line
+					inx 
+					cmp #PADDING_TOP
+					bne padding_loop
+		jsr set_attributes
+		rts
 	.endproc
 
 	.proc go_to_next_slide
+		ldy #0
+				sty text_line
+				ldx #0
+				padding_loop:
+					inc text_line
+					lda text_line
+					inx 
+					cmp #PADDING_TOP
+					bne padding_loop
 		ldx #0
 		ldy #0
 		find_next_slide: 	 			; proceed if they are equal
@@ -286,10 +310,13 @@ SPACE = ' '
 				lda (character_pointer), y
 				cmp #SLIDE_SEPERATOR
 				bne skip_escape_find
+				increment_16i_pointer character_pointer  	;increment 3 times to skip the 's' and 2 hidden nextline characters
 				jmp increment_slide
 			skip_escape_find:
 			jmp find_next_slide
 			increment_slide:
+				increment_16i_pointer character_pointer
+				increment_16i_pointer character_pointer
 				increment_16i_pointer character_pointer
 				inc slide
 				jmp set_attributes
@@ -322,7 +349,7 @@ SPACE = ' '
 			cmp #ESCAPE_CHAR
 			bne skip_escape
 				iny 
-				lda (text_address),y
+				lda (character_pointer),y
 				dey 
 				cmp #SLIDE_SEPERATOR
 				beq exit
