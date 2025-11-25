@@ -272,7 +272,7 @@ SPACE = ' '
 	.proc setup_first_slide
 		assign_16i text_address, text 			; make the text_address pointer point to text
 		assign_16i character_pointer, text
-		
+
 		ldy #0
 				sty text_line
 				ldx #0
@@ -300,7 +300,7 @@ SPACE = ' '
 		ldy #0
 		find_next_slide: 	 			; proceed if they are equal
 			increment_16i_pointer character_pointer
-			lda (character_pointer), y 	; get current text byte (2 bytes address)
+			lda (character_pointer), y 	; y is 0 so just the character the pointer points to
 			beq reset_slides 		; if it's 0, go back to first slide
 			cmp #NEWPAGE
 			beq increment_slide
@@ -401,16 +401,30 @@ SPACE = ' '
 			cpy #$40
 			bne @loop
 
-		restore_regsiters
 		jsr vram_set_address_text 	; set the vram address
+		restore_regsiters
 		rts 
 	.endproc
 
 	.proc vram_set_address_text
+		save_registers
+		ldx #0
 		lda PPU_STATUS 		; load ppu status
-		lda #>NAME_TABLE_0_ADDRESS	; get high byte
-		sta PPU_VRAM_ADDRESS; write it
 		lda text_line		; load the text line
+		cmp #8				; if it's higher than 7 it'll go over value 255 when shifting it making lines appear at the beginning again
+		bcc not_overload
+			loop:
+				sbc #8			;remove 8
+				inx
+				cmp #8			; check if there's still overload
+				bcc not_overload; if there isn't, go out of the loop
+				jmp loop		; if there is, jump back
+		not_overload:
+		tay
+		txa 
+		adc #>NAME_TABLE_0_ADDRESS
+		sta PPU_VRAM_ADDRESS		; write it
+		tya 
 		asl 				; multiply it with 32 (to get the y coord)
 		asl 
 		asl 
@@ -420,6 +434,7 @@ SPACE = ' '
 		adc #<NAME_TABLE_0_ADDRESS	; add the low byte of name table to the y coord
 		adc #PADDING_LEFT
 		sta PPU_VRAM_ADDRESS		; write it
+		restore_regsiters
 		rts 
 	.endproc
 
