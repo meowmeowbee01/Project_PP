@@ -41,19 +41,9 @@
 .endmacro
 
 .macro increment_16i_pointer pointer
-	lda pointer
-	cmp #$ff
-	bne :+
-		inc pointer + 1
-	:
+	clc 
+	lda pointer + 1
 	inc pointer
-.endmacro
-
-.macro decrement_16i_pointer pointer
-	lda pointer
-	cmp #$00
-	bne :+
-		dec pointer + 1
-	:
-	dec pointer
+	adc #0
+	sta pointer + 1
 .endmacro

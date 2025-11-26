@@ -29,6 +29,7 @@ SPACE = ' '
 	remaining_input_cooldown: .res 1
 	current_palette: .res 1
 	character_pointer: .res 2 		; points to start of slide
+	number_of_slides: .res 1
 
 .segment "OAM"
 	oam: .res $100
@@ -100,6 +101,7 @@ SPACE = ' '
 		clear_nametable(NAME_TABLE_1_ADDRESS)
 
 		jsr setup_first_slide
+		jsr set_number_of_slides
 		jsr display_current_slide
 
 		jsr ppu_update
@@ -177,6 +179,27 @@ SPACE = ' '
 			jmp mainloop
 	.endproc
 
+	.proc set_number_of_slides
+		ldx #1
+		loop:
+			increment_16i_pointer character_pointer
+			ldy #0
+			lda (character_pointer), y 	; y is 0 so just the character the pointer points to
+			beq exit 					; if it's 0, we're past the last slide
+			cmp #ESCAPE_CHAR
+			bne loop
+				ldy #1
+				lda (character_pointer), y 		; check the next character
+				cmp #SLIDE_SEPERATOR
+				bne loop
+				inx 
+				jmp loop
+		exit:
+			assign_16i character_pointer, text	; set current slide pointer to the first slide
+			stx number_of_slides 
+			rts 
+	.endproc
+
 	.proc set_padding
 		ldx #0
 		loop:
@@ -190,6 +213,8 @@ SPACE = ' '
 	.endproc
 
 	.proc setup_first_slide
+		lda #0
+		sta slide
 		assign_16i character_pointer, text
 		jsr set_padding
 		jsr set_attributes
@@ -230,7 +255,6 @@ SPACE = ' '
 	.endproc
 
 	.proc go_to_previous_slide
-		save_registers
 		lda slide
 		cmp #0
 		bne not_first_slide
@@ -239,31 +263,27 @@ SPACE = ' '
 				save_registers
 				jsr go_to_next_slide
 				restore_regsiters
-				iny
+				iny 
 				cpy number_of_slides
 				bne slide_loop1
 				jmp exit
 		not_first_slide:
-		pha 
-		assign_16i character_pointer, text
-		pla
-		sbc #1
-		ldx #0
-		stx slide
-			slide_loop2:
-				cmp #0
-				beq exit
-				pha
-				jsr go_to_next_slide
-				pla
-				sec
-				sbc #1
-				cmp #1
-				bcs slide_loop2
-				jmp exit
-		exit:
+		save_registers
+		jsr setup_first_slide
 		restore_regsiters
-		rts
+		sec 
+		sbc #1
+		slide_loop2:
+			cmp #0
+			beq exit
+			pha 
+			jsr go_to_next_slide
+			pla 
+			sec 
+			sbc #1
+			jmp slide_loop2
+		exit:
+			rts 
 	.endproc
 
 	.proc display_current_slide
@@ -337,21 +357,14 @@ SPACE = ' '
 		save_registers
 		ldx #0
 		lda PPU_STATUS 		; load ppu status
-		lda text_line		; load the text line
-		cmp #8				; if it's higher than 7 it'll go over value 255 when shifting it making lines appear at the beginning again
-		bcc not_overload
-			loop:
-				sbc #8			;remove 8
-				inx
-				cmp #8			; check if there's still overload
-				bcc not_overload; if there isn't, go out of the loop
-				jmp loop		; if there is, jump back
-		not_overload:
-		tay
-		txa 
+		lda text_line 		; load the text line
+		lsr 
+		lsr 
+		lsr 
+		clc 
 		adc #>NAME_TABLE_0_ADDRESS
 		sta PPU_VRAM_ADDRESS		; write it
-		tya 
+		lda text_line
 		asl 				; multiply it with 32 (to get the y coord)
 		asl 
 		asl 
