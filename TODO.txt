@@ -5,7 +5,7 @@ Add the current slide number in the bottom right of the screen
 (DAN) Add a special tab character (like the \s but than \t for example)
 Figure something out for low res images (maybe a special character that represents the start of an image and possibly use the second pattern table to store images and also do it in a seperate file)
 Make it so the next slide is saved on the nametable next to it so we can do a small transition animation using the scroll
-(LIAM) Make editor
+(LIAM) Make editor (on screen keyboard (with light gun))
 
 DONE:
 (YANNICK) fix the issue of only supporting 256 characters

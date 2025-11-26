@@ -46,9 +46,7 @@
 	bne :+
 		inc pointer + 1
 	:
-	clc
-	adc #1
-	sta pointer
+	inc pointer
 .endmacro
 
 .macro decrement_16i_pointer pointer
@@ -57,7 +55,5 @@
 	bne :+
 		dec pointer + 1
 	:
-	clc
-	sbc #1
-	sta pointer
+	dec pointer
 .endmacro
