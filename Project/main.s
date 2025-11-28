@@ -233,6 +233,7 @@ SPACE = ' '
 			bne find_next_slide
 				ldy #1
 				lda (character_pointer), y 		; check the next character
+				ldy #0
 				cmp #SLIDE_SEPERATOR
 				bne find_next_slide
 		
@@ -290,21 +291,27 @@ SPACE = ' '
 		ldy #0
 		text_loop:
 			lda (character_pointer),y 	; get current text byte (2 bytes address)
-			beq exit 				; if it's 0, exit
-			;cmp #TAB				
-			;beq write_tab			
-			cmp #ESCAPE_CHAR		; found '\' do this:
-			bne skip_escape			; didn't find '\' then skip
+			beq exit 					; if it's 0, exit
+			cmp #TAB
+			bne skip_tab
+				jsr write_tab
+				jmp skip_write
+			skip_tab:
+			cmp #ESCAPE_CHAR					; found '\' do this:
+			bne skip_escape 					; didn't find '\' then skip
 				iny 							; increase y offset
-				lda (character_pointer),y		; get next character
+				lda (character_pointer),y 		; get next character
 				dey 							; decrease y offset
 				cmp #SLIDE_SEPERATOR 			; found 's' ?
-				beq exit						; exit this procedure
-				cmp #TAB_CHAR					; found 't' ?
-				beq write_tab					; write the tab
+				beq exit 						; exit this procedure
+				cmp #TAB_CHAR 					; found 't' ?
+				bne skip_escape 				; skip writing tab if there is none
+					jsr write_tab
+					iny 
+					jmp skip_write
 			skip_escape:
-			cmp #NEWLINE			; check if it's a newline character
-			bne skip_newline		; if it isn't, branch
+			cmp #NEWLINE 			; check if it's a newline character
+			bne skip_newline 		; if it isn't, branch
 				inc text_line 		; increment text line
 				jsr vram_set_address_text
 				jmp skip_write
@@ -313,19 +320,19 @@ SPACE = ' '
 			skip_write:
 			iny 					; increment y
 			jmp text_loop 			; loop again
-			write_tab:
-				ldx #0				
-				lda #SPACE			; write a space
-				@tab_writing_loop:		; do enough spaces for the tab
-					sta PPU_VRAM_IO	
-					inx 			; increment counter
-					cpx #TAB_WIDTH	; compare counter to tab width
-					bne @tab_writing_loop ; if we haven't done enough spaces, do it agains
-				iny                    ; skip loading ''
-                iny                 ; skip loading 't'
-				jmp text_loop
 		exit:
 			rts 					; return from subroutine
+	.endproc
+
+	.proc write_tab
+		ldx #0				
+		lda #SPACE 					; write a space
+		@tab_writing_loop: 			; do enough spaces for the tab
+			sta PPU_VRAM_IO
+			inx 					; increment counter
+			cpx #TAB_WIDTH 			; compare counter to tab width
+			bne @tab_writing_loop 	; if we haven't done enough spaces, do it agains
+		rts 
 	.endproc
 
 	.proc set_attributes

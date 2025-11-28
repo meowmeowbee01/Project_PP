@@ -3,9 +3,17 @@ in THIS economy???\s
 slide
 number
 _2_\s
-this is the 
-THIRD
-slide
-\twith tab\s
-hello\s
-world
+\tthis is the 
+\tTHIRD
+\tslide
+\twith tabs
+\tvia escape char\s
+	fourth
+	slide
+	with
+	tab
+	characters
+	and
+	many
+	newlines\s
+the fifth slide is a slide that has an absurdly long line of text to see what will happen when our poor little subroutine is expected to write such a long line of text (185 characters)
