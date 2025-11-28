@@ -1,5 +1,7 @@
 
 IF ANYONE STARTS WORKING ON A TODO ADD YOUR NAME AT THE END SO WE DONT HAVE 2 PEOPLE DOING THE SAME THING
+check for CR characters and ignore them
+fix issues caused by too much content on a slide
 (DAN or ARNO) Presentation name
 Add the current slide number in the bottom right of the screen
 Figure something out for low res images (maybe a special character that represents the start of an image and possibly use the second pattern table to store images and also do it in a seperate file)

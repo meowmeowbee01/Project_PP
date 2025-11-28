@@ -42,8 +42,10 @@
 
 .macro increment_16i_pointer pointer
 	clc 
+	lda pointer
+	adc #1
+	sta pointer
 	lda pointer + 1
-	inc pointer
 	adc #0
 	sta pointer + 1
 .endmacro

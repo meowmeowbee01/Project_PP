@@ -16,4 +16,37 @@ _2_\s
 	and
 	many
 	newlines\s
-the fifth slide is a slide that has an absurdly long line of text to see what will happen when our poor little subroutine is expected to write such a long line of text (185 characters)
+v
+e
+r
+t
+i
+c
+a
+l
+
+s
+l
+i
+d
+e
+
+t
+o
+
+t
+e
+s
+t
+
+t
+h
+e
+
+l
+i
+m
+i
+t\s
+the sixth slide is a slide that has an absurdly long line of text to see what will happen when our poor little subroutine is expected to write such a long line of text (185 characters)\s
+the seventh slide is somehow even longer compared to the ridicilous slide number six because i wanted to know what would happen if it reached over 256 characters, this turned out to be challenging my creative writing wich is pretty sad because it's not even really that much text
