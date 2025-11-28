@@ -10,3 +10,4 @@ images: .byte 2, 2 					; define the dimensions of the images (first width than 
 ESCAPE_CHAR = '\'
 SLIDE_SEPERATOR = 's'
 IMAGE_OPERATOR = 'i'
+TAB_CHAR = 't'

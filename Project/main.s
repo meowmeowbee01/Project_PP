@@ -256,17 +256,17 @@ SPACE = ' '
 
 	.proc go_to_previous_slide
 		lda slide
-		cmp #0
-		bne not_first_slide
-			ldy #1
-			slide_loop1:
-				save_registers
-				jsr go_to_next_slide
+		cmp #0							; if this is the first slide, loop all the way to the end
+		bne not_first_slide				; skip if slide index != 0
+			ldy #1							; y will serve as slide index
+			slide_loop1:					; loop to reach last slide:
+				save_registers					
+				jsr go_to_next_slide			
 				restore_regsiters
-				iny 
-				cpy number_of_slides
-				bne slide_loop1
-				jmp exit
+				iny 						; since we are on the next slide, inc y
+				cpy number_of_slides		; compare to total amount of slides
+				bne slide_loop1				; not end? go back
+				jmp exit					; is end -> exit
 		not_first_slide:
 		save_registers
 		jsr setup_first_slide
@@ -291,15 +291,17 @@ SPACE = ' '
 		text_loop:
 			lda (character_pointer),y 	; get current text byte (2 bytes address)
 			beq exit 				; if it's 0, exit
-			cmp #TAB				; check if tab was pressed
-			beq write_tab			; write the tab
-			cmp #ESCAPE_CHAR
-			bne skip_escape
-				iny 
-				lda (character_pointer),y
-				dey 
-				cmp #SLIDE_SEPERATOR
-				beq exit
+			;cmp #TAB				
+			;beq write_tab			
+			cmp #ESCAPE_CHAR		; found '\' do this:
+			bne skip_escape			; didn't find '\' then skip
+				iny 							; increase y offset
+				lda (character_pointer),y		; get next character
+				dey 							; decrease y offset
+				cmp #SLIDE_SEPERATOR 			; found 's' ?
+				beq exit						; exit this procedure
+				cmp #TAB_CHAR					; found 't' ?
+				beq write_tab					; write the tab
 			skip_escape:
 			cmp #NEWLINE			; check if it's a newline character
 			bne skip_newline		; if it isn't, branch
@@ -314,11 +316,11 @@ SPACE = ' '
 			write_tab:
 				ldx #0				
 				lda #SPACE			; write a space
-				@inside_loop:		; do enough spaces for the tab
+				@tab_writing_loop:		; do enough spaces for the tab
 					sta PPU_VRAM_IO	
 					inx 			; increment counter
 					cpx #TAB_WIDTH	; compare counter to tab width
-					bne @inside_loop ; if we haven't done enough spaces, do it agains
+					bne @tab_writing_loop ; if we haven't done enough spaces, do it agains
 				iny 
 				jmp text_loop
 		exit:
