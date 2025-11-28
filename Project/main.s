@@ -321,7 +321,8 @@ SPACE = ' '
 					inx 			; increment counter
 					cpx #TAB_WIDTH	; compare counter to tab width
 					bne @tab_writing_loop ; if we haven't done enough spaces, do it agains
-				iny 
+				iny                    ; skip loading ''
+                iny                 ; skip loading 't'
 				jmp text_loop
 		exit:
 			rts 					; return from subroutine

@@ -2,7 +2,6 @@
 IF ANYONE STARTS WORKING ON A TODO ADD YOUR NAME AT THE END SO WE DONT HAVE 2 PEOPLE DOING THE SAME THING
 (DAN or ARNO) Presentation name
 Add the current slide number in the bottom right of the screen
-(DAN) Add a special tab character (like the \s but than \t for example)
 Figure something out for low res images (maybe a special character that represents the start of an image and possibly use the second pattern table to store images and also do it in a seperate file)
 (ismail)Make it so the next slide is saved on the nametable next to it so we can do a small transition animation using the scroll
 Make it scroll
@@ -15,3 +14,4 @@ DONE:
 (DAN) Fix the lightgun
 (YANNICK) CoLoRs MaAaAaN
 (DAN) make a macro to detect "\s" in content.ascii to detect the new page
+(DAN) Add a special tab character (like the \s but than \t for example)
