@@ -1,4 +1,6 @@
+.include "neslib.s"
 NEWLINE = $a
+CARRIAGE_RETURN = $d
 TAB = '	'
 SPACE = ' '
 
@@ -13,7 +15,6 @@ SPACE = ' '
 	.byte INES_MIRROR | (INES_SRAM << 1) | ((INES_MAPPER & $f) << $4)
 	.byte (INES_MAPPER & %11110000)
 	.byte 0, 0, 0, 0, 0, 0, 0, 0	; padding
-
 
 .segment "VECTORS"
 	.addr nmi		; when an NMI happens (once per frame if enabled), a jump to the label nmi will occur
@@ -34,15 +35,13 @@ SPACE = ' '
 .segment "OAM"
 	oam: .res $100
 
-.include "neslib.s"
-.include "settings.s"
-
 .segment "BSS"
 	palette: .res $20
 
 .segment "CODE" 	; main code segment for the program
+	.include "settings.s"
 	text:
-		.incbin "content.ascii"
+		.incbin "content.txt"
 		.byte 0
 
 	.proc irq
@@ -237,9 +236,14 @@ SPACE = ' '
 				cmp #SLIDE_SEPERATOR
 				bne find_next_slide
 		
-		increment_16i_pointer character_pointer
-		increment_16i_pointer character_pointer
-		increment_16i_pointer character_pointer
+		increment_16i_pointer character_pointer 	; skip over \
+		increment_16i_pointer character_pointer 	; skip over s
+		lda (character_pointer), y
+		cmp #CARRIAGE_RETURN
+		bne skip_CR_skip
+			increment_16i_pointer character_pointer ; skip over CR
+		skip_CR_skip:
+		increment_16i_pointer character_pointer 	; skip over newline
 		inc slide
 		jmp attributes
 
@@ -297,6 +301,14 @@ SPACE = ' '
 				jsr write_tab
 				jmp skip_write
 			skip_tab:
+			cmp #NEWLINE 			; check if it's a newline character
+			bne skip_newline 		; if it isn't, branch
+				inc text_line 		; increment text line
+				jsr vram_set_address_text
+				jmp skip_write
+			skip_newline:
+			cmp #CARRIAGE_RETURN
+			beq skip_write
 			cmp #ESCAPE_CHAR					; found '\' do this:
 			bne skip_escape 					; didn't find '\' then skip
 				iny 							; increase y offset
@@ -310,12 +322,6 @@ SPACE = ' '
 					iny 
 					jmp skip_write
 			skip_escape:
-			cmp #NEWLINE 			; check if it's a newline character
-			bne skip_newline 		; if it isn't, branch
-				inc text_line 		; increment text line
-				jsr vram_set_address_text
-				jmp skip_write
-			skip_newline:
 				sta PPU_VRAM_IO 	; write it to the ppu io register
 			skip_write:
 			iny 					; increment y
