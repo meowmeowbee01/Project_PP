@@ -224,8 +224,10 @@ SPACE = ' '
 		jsr set_padding
 		ldx #0
 		ldy #0
+		jmp skip_increment 				; character_pointer points at the end of previous slide so don't increment the first time
 		find_next_slide: 	 			; proceed if they are equal
 			increment_16i_pointer character_pointer
+			skip_increment:
 			lda (character_pointer), y 	; y is 0 so just the character the pointer points to
 			beq reset_slides 			; if it's 0, go back to first slide since there's a 0 after the content
 			cmp #ESCAPE_CHAR
@@ -319,12 +321,12 @@ SPACE = ' '
 				cmp #TAB_CHAR 					; found 't' ?
 				bne skip_escape 				; skip writing tab if there is none
 					jsr write_tab
-					iny 
+					increment_16i_pointer character_pointer
 					jmp skip_write
 			skip_escape:
 				sta PPU_VRAM_IO 	; write it to the ppu io register
 			skip_write:
-			iny 					; increment y
+			increment_16i_pointer character_pointer
 			jmp text_loop 			; loop again
 		exit:
 			rts 					; return from subroutine
