@@ -30,6 +30,7 @@ SPACE = ' '
 	remaining_input_cooldown: .res 1
 	current_palette: .res 1
 	character_pointer: .res 2 		; points to start of slide
+	character_pointer_next: .res 2 	;points to start of next slide
 	number_of_slides: .res 1
 
 .segment "OAM"
@@ -102,6 +103,7 @@ SPACE = ' '
 		jsr setup_first_slide
 		jsr set_number_of_slides
 		jsr display_current_slide
+		jsr prepare_next_slide_nametable
 
 		jsr ppu_update
 
@@ -163,8 +165,10 @@ SPACE = ' '
 			sta remaining_input_cooldown
 			jsr ppu_off
 			clear_nametable(NAME_TABLE_0_ADDRESS)
+			clear_nametable(NAME_TABLE_1_ADDRESS)
 			jsr go_to_next_slide
 			jsr display_current_slide
+			jsr prepare_next_slide_nametable
 			jsr ppu_update
 			jmp mainloop
 		prev_slide:
@@ -172,8 +176,10 @@ SPACE = ' '
 			sta remaining_input_cooldown
 			jsr ppu_off
 			clear_nametable(NAME_TABLE_0_ADDRESS)
+			clear_nametable(NAME_TABLE_1_ADDRESS)
 			jsr go_to_previous_slide
 			jsr display_current_slide
+			jsr prepare_next_slide_nametable
 			jsr ppu_update
 			jmp mainloop
 	.endproc
@@ -293,6 +299,30 @@ SPACE = ' '
 			rts 
 	.endproc
 
+	.proc find_next_slide_start
+		ldy #0
+		lda (character_pointer), y
+		beq @wrap_to_first
+
+		lda character_pointer
+		sta character_pointer_next
+		lda character_pointer + 1
+		sta character_pointer_next + 1
+
+		increment_16i_pointer character_pointer_next
+		increment_16i_pointer character_pointer_next
+		lda (character_pointer_next), y
+		cmp #CARRIAGE_RETURN
+		bne @skip_CR
+			increment_16i_pointer character_pointer_next
+		@skip_CR:
+			increment_16i_pointer character_pointer_next
+			rts
+		@wrap_to_first:
+			assign_16i character_pointer_next, text
+			rts
+	.endproc
+
 	.proc display_current_slide
 		ldy #0
 		text_loop:
@@ -327,6 +357,54 @@ SPACE = ' '
 				sta PPU_VRAM_IO 	; write it to the ppu io register
 			skip_write:
 			increment_16i_pointer character_pointer
+			jmp text_loop 			; loop again
+		exit:
+			rts 					; return from subroutine
+	.endproc
+
+	.proc prepare_next_slide_nametable
+		clear_nametable(NAME_TABLE_1_ADDRESS)	;
+		jsr find_next_slide_start
+		jsr set_padding
+		jsr set_attributes_next
+		jsr display_next_slide_nt1
+		rts
+	.endproc
+
+	.proc display_next_slide_nt1
+	ldy #0
+		text_loop:
+			lda (character_pointer_next),y 	; get current text byte (2 bytes address)
+			beq exit 					; if it's 0, exit
+			cmp #TAB
+			bne skip_tab
+				jsr write_tab
+				jmp skip_write
+			skip_tab:
+			cmp #NEWLINE 			; check if it's a newline character
+			bne skip_newline 		; if it isn't, branch
+				inc text_line 		; increment text line
+				jsr vram_set_address_text_n1
+				jmp skip_write
+			skip_newline:
+			cmp #CARRIAGE_RETURN
+			beq skip_write
+			cmp #ESCAPE_CHAR					; found '\' do this:
+			bne skip_escape 					; didn't find '\' then skip
+				iny 							; increase y offset
+				lda (character_pointer_next),y 		; get next character
+				dey 							; decrease y offset
+				cmp #SLIDE_SEPERATOR 			; found 's' ?
+				beq exit 						; exit this procedure
+				cmp #TAB_CHAR 					; found 't' ?
+				bne skip_escape 				; skip writing tab if there is none
+					jsr write_tab
+					increment_16i_pointer character_pointer_next
+					jmp skip_write
+			skip_escape:
+				sta PPU_VRAM_IO 	; write it to the ppu io register
+			skip_write:
+			increment_16i_pointer character_pointer_next
 			jmp text_loop 			; loop again
 		exit:
 			rts 					; return from subroutine
@@ -371,6 +449,41 @@ SPACE = ' '
 		rts 
 	.endproc
 
+	.proc set_attributes_next
+		save_registers
+		lda slide
+		clc
+		adc #1
+		cmp number_of_slides
+		bcc @no_wrap
+			lda #0
+		@no_wrap:
+			tay
+		lda palettes, y
+		sta current_palette
+		vram_set_address (ATTRIBUTE_TABLE_1_ADDRESS)
+		ora current_palette
+		asl 
+		asl 
+		ora current_palette
+		asl 
+		asl 
+		ora current_palette
+		asl 
+		asl 
+		ora current_palette
+		ldy #0
+		@loop: 				; write all attributes to the vram
+			sta PPU_VRAM_IO
+			iny 
+			cpy #$40
+			bne @loop
+
+		jsr vram_set_address_text_n1 	; set the vram address
+		restore_regsiters
+		rts 
+	.endproc
+
 	.proc vram_set_address_text
 		save_registers
 		ldx #0
@@ -390,6 +503,31 @@ SPACE = ' '
 		asl 
 		clc 
 		adc #<NAME_TABLE_0_ADDRESS	; add the low byte of name table to the y coord
+		adc #PADDING_LEFT
+		sta PPU_VRAM_ADDRESS		; write it
+		restore_regsiters
+		rts 
+	.endproc
+
+	.proc vram_set_address_text_n1
+		save_registers
+		ldx #0
+		lda PPU_STATUS 		; load ppu status
+		lda text_line 		; load the text line
+		lsr 
+		lsr 
+		lsr 
+		clc 
+		adc #>NAME_TABLE_1_ADDRESS
+		sta PPU_VRAM_ADDRESS		; write it
+		lda text_line
+		asl 				; multiply it with 32 (to get the y coord)
+		asl 
+		asl 
+		asl 
+		asl 
+		clc 
+		adc #<NAME_TABLE_1_ADDRESS	; add the low byte of name table to the y coord
 		adc #PADDING_LEFT
 		sta PPU_VRAM_ADDRESS		; write it
 		restore_regsiters
