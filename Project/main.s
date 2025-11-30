@@ -32,6 +32,7 @@ SPACE = ' '
 	character_pointer: .res 2 		; points to start of slide
 	character_pointer_next: .res 2 	;points to start of next slide
 	number_of_slides: .res 1
+	scroll_x: .res 1				;scroll offset
 
 .segment "OAM"
 	oam: .res $100
@@ -130,8 +131,9 @@ SPACE = ' '
 			bcc @loop
 
 		; write current scroll and control settings
-		lda #0
+		lda scroll_x
 		sta PPU_SCROLL
+		lda #0
 		sta PPU_SCROLL
 		lda ppu_ctl0
 		sta PPU_CONTROL
@@ -163,6 +165,7 @@ SPACE = ' '
 		next_slide:
 			lda #INPUT_COOLDOWN 			; set remaining input cooldown
 			sta remaining_input_cooldown
+			jsr scroll_next
 			jsr ppu_off
 			clear_nametable(NAME_TABLE_0_ADDRESS)
 			clear_nametable(NAME_TABLE_1_ADDRESS)
@@ -180,7 +183,10 @@ SPACE = ' '
 			jsr go_to_previous_slide
 			jsr display_current_slide
 			jsr prepare_next_slide_nametable
+			lda #$FF ;screen width
+			sta scroll_x
 			jsr ppu_update
+			jsr scroll_next
 			jmp mainloop
 	.endproc
 
@@ -224,6 +230,45 @@ SPACE = ' '
 		jsr set_padding
 		jsr set_attributes
 		rts 
+	.endproc
+
+	.proc scroll_next
+		lda scroll_x
+		beq @forward	
+		ldx scroll_x
+		@back_loop:
+			stx scroll_x	
+			jsr ppu_update	;wait nmi
+			;jsr gamepad_poll
+			;lda gamepad
+			;and #PAD_A|PAD_RIGHT|PAD_B|PAD_LEFT
+			;bne @done
+			cpx #0			;end transition when left side reached
+			beq @done		
+			txa
+			sec
+			sbc #SCROLL_SPEED
+			tax
+			jmp @back_loop
+		@forward: 
+			ldx #0			
+		@fwd_loop:
+			stx scroll_x	
+			jsr ppu_update	;wait nmi
+			;jsr gamepad_poll
+			;lda gamepad
+			;and #PAD_A|PAD_RIGHT|PAD_B|PAD_LEFT
+			;bne @done
+			txa
+			clc
+			adc #SCROLL_SPEED
+			tax
+			bne @fwd_loop
+		@done:
+		@no_trans:
+			lda #0
+			sta scroll_x
+			rts
 	.endproc
 
 	.proc go_to_next_slide

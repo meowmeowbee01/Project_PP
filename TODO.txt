@@ -5,9 +5,8 @@ fix many newlines leading to writing text in atrribute area
 Add the current slide number in the bottom right of the screen
 Figure something out for low res images (maybe a special character that represents the start of an image and possibly use the second pattern table to store images and also do it in a seperate file)
 
-(ismail)Make it scroll
-Make scroll speed configurable in settings (speed 0 => skip animation)
-next slide button pressed during animation => skip animation
+(ismail)make scroll zigzag
+(ismail)next slide button pressed during animation => skip animation
 (LIAM) Make editor (on screen keyboard (with light gun))
 
 DONE:
@@ -19,3 +18,5 @@ DONE:
 (DAN) make a macro to detect "\s" in content.ascii to detect the new page
 (DAN) Add a special tab character (like the \s but than \t for example)
 (ismail)Make it so the next slide is saved on the nametable next to it so we can do a small transition animation using the scroll
+(ismail)Make it scroll
+(ismail)Make scroll speed configurable in settings (speed 0 => skip animation)
