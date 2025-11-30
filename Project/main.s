@@ -369,6 +369,9 @@ SPACE = ' '
 	.endproc
 
 	.proc display_current_slide
+		jsr display_slide_number ; display the slide idx
+        jsr vram_set_address_text ; reset text address
+
 		ldy #0
 		text_loop:
 			lda (character_pointer),y 	; get current text byte (2 bytes address)
@@ -578,6 +581,30 @@ SPACE = ' '
 		restore_regsiters
 		rts 
 	.endproc
+
+	.proc display_slide_number    ; Draws in bottom-right corner of the screen
+        save_registers
+
+        vram_set_address (SLIDE_INDEX_ADDR)    ; Set VRAM address to bottom-right
+
+        lda slide            ; slide is 0-based
+        clc
+        adc #1                ; make it 1-based
+        clc
+        adc #'0'            ; convert 1..9 to ASCII '1'..'9'
+        sta PPU_VRAM_IO        ; write the number
+
+        lda #':'
+        sta PPU_VRAM_IO        ; write :
+
+        lda number_of_slides    ; assuming <= 9 slides
+        clc
+        adc #'0'
+        sta PPU_VRAM_IO            ; write the total amount of slides
+
+        restore_regsiters
+        rts
+    .endproc
 
 .segment "RODATA"
 	default_palette: 	; background palette
