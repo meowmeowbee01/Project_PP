@@ -3,6 +3,7 @@ NEWLINE = $a
 CARRIAGE_RETURN = $d
 TAB = '	'
 SPACE = ' '
+MAX_HEIGHT = $1e
 
 .segment "HEADER"
 	INES_MAPPER = 0				; 0 = NROM
@@ -44,7 +45,8 @@ SPACE = ' '
 
 .segment "CODE" 	; main code segment for the program
 	.include "settings.s"
-	SLIDE_INDEX_ADDR = NAME_TABLE_0_ADDRESS + (INDEX_Y_POS * 32) + INDEX_X_POS
+	SLIDE_INDEX_ADDR = NAME_TABLE_0_ADDRESS + (INDEX_Y_POS * $20) + INDEX_X_POS
+	MAX_WIDTH = $20 - PADDING_RIGHT
 	text:
 		.incbin "content.txt"
 		.byte 0
@@ -402,7 +404,12 @@ SPACE = ' '
 			skip_tab:
 			cmp #NEWLINE 			; check if it's a newline character
 			bne skip_newline 		; if it isn't, branch
+			force_newline:
 				inc text_line 		; increment text line
+				lda text_line
+				cmp #MAX_HEIGHT
+				beq exit
+				ldx #0
 				jsr vram_set_address_text
 				jmp skip_write
 			skip_newline:
@@ -443,6 +450,9 @@ SPACE = ' '
 			cmp #NEWLINE 			; check if it's a newline character
 			bne skip_newline 		; if it isn't, branch
 				inc text_line 		; increment text line
+				lda text_line
+				cmp #MAX_HEIGHT
+				beq exit
 				ldx #1
 				jsr vram_set_address_text
 				jmp skip_write
