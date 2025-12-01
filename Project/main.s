@@ -234,38 +234,39 @@ SPACE = ' '
 		rts 
 	.endproc
 
-	.proc scroll_next
+	.proc scroll_next ;refactored (not done yet tho, not all features are present yet see comments)
 		lda scroll_x
-		beq @forward	
-		ldx scroll_x
+		beq @forward
 		@back_loop:
-			stx scroll_x	
+			sta scroll_x	
+			pha
 			jsr ppu_update	;wait nmi
-			;jsr gamepad_poll
-			;lda gamepad
-			;and #PAD_A|PAD_RIGHT|PAD_B|PAD_LEFT
-			;bne @done
-			cpx #0			;end transition when left side reached
-			beq @done		
-			txa
+			; jsr gamepad_poll
+			; lda gamepad
+			; and #PAD_A|PAD_RIGHT|PAD_B|PAD_LEFT
+			; bne @done
+			pla
+			clc
+			cmp #SCROLL_SPEED		;end transition when left side reached
+			bcc @done
 			sec
 			sbc #SCROLL_SPEED
-			tax
 			jmp @back_loop
 		@forward: 
-			ldx #0			
+			lda #0			
 		@fwd_loop:
-			stx scroll_x	
+			sta scroll_x	
+			pha
 			jsr ppu_update	;wait nmi
-			;jsr gamepad_poll
-			;lda gamepad
-			;and #PAD_A|PAD_RIGHT|PAD_B|PAD_LEFT
-			;bne @done
-			txa
+			; jsr gamepad_poll
+			; lda gamepad
+			; and #PAD_A|PAD_RIGHT|PAD_B|PAD_LEFT
+			; bne @done
+			pla
 			clc
 			adc #SCROLL_SPEED
-			tax
-			bne @fwd_loop
+			bcs @done
+			jmp @fwd_loop
 		@done:
 		@no_trans:
 			lda #0
