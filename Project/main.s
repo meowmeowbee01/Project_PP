@@ -42,6 +42,7 @@ SPACE = ' '
 
 .segment "CODE" 	; main code segment for the program
 	.include "settings.s"
+	SLIDE_INDEX_ADDR = NAME_TABLE_0_ADDRESS + (INDEX_Y_POS * 32) + INDEX_X_POS
 	text:
 		.incbin "content.txt"
 		.byte 0
@@ -584,7 +585,6 @@ SPACE = ' '
 
 	.proc display_slide_number    ; Draws in bottom-right corner of the screen
         save_registers
-
         vram_set_address (SLIDE_INDEX_ADDR)    ; Set VRAM address to bottom-right
 
         lda slide            ; slide is 0-based
@@ -605,6 +605,19 @@ SPACE = ' '
         restore_regsiters
         rts
     .endproc
+
+	; .proc set_slide_idx_address
+	; 	save_registers
+		
+	; 	ldx #INDEX_X_POS
+	; 	ldy #INDEX_Y_POS
+	; 	lda #0					; accumulator will serve as the address storage
+
+		
+
+	; 	restore_regsiters
+	; 	rts
+	; .endproc
 
 .segment "RODATA"
 	default_palette: 	; background palette
