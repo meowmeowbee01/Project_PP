@@ -1,5 +1,6 @@
 
 IF ANYONE STARTS WORKING ON A TODO ADD YOUR NAME AT THE END SO WE DONT HAVE 2 PEOPLE DOING THE SAME THING
+IDEAS:
 fix many newlines leading to writing text in atrribute area
 (DAN or arno) Presentation name
 Add the current slide number in the bottom right of the screen
@@ -7,6 +8,10 @@ Figure something out for low res images (maybe a special character that represen
 (ismail)make scroll zigzag
 (ismail)next slide button pressed during animation => skip animation
 (LIAM) Make editor (on screen keyboard (with light gun))
+
+WIP:
+(DAN) Display indexes only when slides are not scrolling
+(DAN) Play woosh sound upon slide transition
 
 DONE:
 (arno) fix issues caused by too much content on a slide
