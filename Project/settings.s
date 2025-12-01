@@ -13,4 +13,6 @@ SLIDE_SEPERATOR = 's'
 IMAGE_OPERATOR = 'i'
 TAB_CHAR = 't'
 
-SLIDE_INDEX_ADDR = NAME_TABLE_0_ADDRESS + (28 * 32) + 28
+INDEX_X_POS = 28    ;in case of single digits, cap at 29
+INDEX_Y_POS = 28
+
