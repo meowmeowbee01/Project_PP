@@ -376,10 +376,10 @@ SPACE = ' '
 			increment_16i_pointer character_pointer_next
 		@skip_CR:
 			increment_16i_pointer character_pointer_next
-			rts
+			rts 
 		@wrap_to_first:
 			assign_16i character_pointer_next, text
-			rts
+			rts 
 	.endproc
 
 	.proc prepare_next_slide_nametable
@@ -391,10 +391,6 @@ SPACE = ' '
 	.endproc
 
 	.proc display_current_slide
-		jsr display_slide_number 	; display the slide idx
-		ldx #0
-		jsr vram_set_address_text 	; reset text address
-
 		ldy #0
 		text_loop:
 			lda (character_pointer),y 	; get current text byte (2 bytes address)
@@ -430,6 +426,7 @@ SPACE = ' '
 			increment_16i_pointer character_pointer
 			jmp text_loop 			; loop again
 		exit:
+			jsr display_slide_number ; display the slide idx
 			rts 					; return from subroutine
 	.endproc
 
@@ -570,63 +567,64 @@ SPACE = ' '
 		asl 
 		asl 
 		asl 
+		clc 
 		adc #PADDING_LEFT
 		sta PPU_VRAM_ADDRESS		; write low byte
 		pla 
 		rts 
 	.endproc
 
-	.proc display_slide_number					; Draws in bottom-right corner of the screen
+	.proc display_slide_number 					; draws in bottom-right corner of the screen
 		save_registers
-        vram_set_address (SLIDE_INDEX_ADDR)		; Set VRAM address to bottom-right
+		vram_set_address (SLIDE_INDEX_ADDR) 	; set VRAM address to bottom-right
 
-        lda slide						; load current slide idx
-        clc
-        adc #1							; make it 1 based
-        jsr print_two_digits			; writes 2 chars (if necessary)
+		lda slide 						; load current slide idx
+		clc 
+		adc #1 							; make it 1 based
+		jsr print_two_digits 			; writes 2 chars (if necessary)
 
-        lda #':'
-        sta PPU_VRAM_IO					; write :
+		lda #'/'
+		sta PPU_VRAM_IO 				; write '/'
 
-        lda number_of_slides
-        jsr print_two_digits			; writes 2 chars (if necessary)
+		lda number_of_slides
+		jsr print_two_digits 			; writes 2 chars (if necessary)
 
-        restore_regsiters
-        rts
-    .endproc
+		restore_regsiters
+		rts 
+	.endproc
 
 	.proc print_two_digits
-        cmp #10
-        bcc @one_digit				; if A < 10 -> print single digit
+		cmp #10
+		bcc @one_digit 				; if A < 10 -> print single digit
 
-        ; ---- two-digit number ----
-        ldy #0						; tens = 0
+		; ---- two-digit number ----
+		ldy #0 						; tens = 0
 		@tens_loop:
-        	cmp #10
-        	bcc @two_digits_ready
-        	sbc #10
-        	iny						; tens++
-        	bne @tens_loop
+			cmp #10
+			bcc @two_digits_ready
+			sbc #10
+			iny 					; tens++
+			bne @tens_loop
 
 		@two_digits_ready:
-        	sta temp_ones			; store ones (0–9)
-        	tya						; A = tens
-        	clc
-        	adc #'0'
-        	sta PPU_VRAM_IO			; print tens digit
+			sta temp_ones 			; store ones (0–9)
+			tya 					; A = tens
+			clc 
+			adc #'0'
+			sta PPU_VRAM_IO 		; print tens digit
 
-        	lda temp_ones			; print ones digit
-        	clc
-        	adc #'0'
-        	sta PPU_VRAM_IO
-        rts
+			lda temp_ones 			; print ones digit
+			clc 
+			adc #'0'
+			sta PPU_VRAM_IO
+		rts 
 
 		; ---- single-digit number ----
 		@one_digit:
-        	clc
-        	adc #'0'
-        	sta PPU_VRAM_IO
-        rts
+			clc 
+			adc #'0'
+			sta PPU_VRAM_IO
+		rts 
 	.endproc
 
 .segment "RODATA"

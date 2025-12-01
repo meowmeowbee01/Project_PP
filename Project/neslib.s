@@ -72,7 +72,6 @@ NAME_TABLE_1_ADDRESS 		= $2400
 ATTRIBUTE_TABLE_1_ADDRESS 	= $27c0
 
 .segment "ZEROPAGE"
-	paddr: .res 2 		; pointer to 16 bit address
 	nmi_ready: .res 1
 	ppu_ctl0: .res 1
 	ppu_ctl1: .res 1 

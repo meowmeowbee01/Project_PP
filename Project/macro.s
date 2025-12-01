@@ -41,11 +41,21 @@
 .endmacro
 
 .macro increment_16i_pointer pointer
-	clc 
 	lda pointer
+	clc 
 	adc #1
 	sta pointer
 	lda pointer + 1
 	adc #0
+	sta pointer + 1
+.endmacro
+
+.macro decrement_16i_pointer pointer
+	lda pointer
+	sec 
+	sbc #1
+	sta pointer
+	lda pointer + 1
+	sbc #0
 	sta pointer + 1
 .endmacro
