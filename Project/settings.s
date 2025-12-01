@@ -13,6 +13,6 @@ SLIDE_SEPERATOR = 's'
 IMAGE_OPERATOR = 'i'
 TAB_CHAR = 't'
 
-INDEX_X_POS = 28    ;in case of single digits, cap at 29
+INDEX_X_POS = 25    ;in case of single digits, cap at 29
 INDEX_Y_POS = 28
 

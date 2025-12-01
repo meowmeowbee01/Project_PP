@@ -33,6 +33,7 @@ SPACE = ' '
 	character_pointer_next: .res 2 	;points to start of next slide
 	number_of_slides: .res 1
 	scroll_x: .res 1				;scroll offset
+	temp_ones: .res 1
 
 .segment "OAM"
 	oam: .res $100
@@ -583,41 +584,58 @@ SPACE = ' '
 		rts 
 	.endproc
 
-	.proc display_slide_number    ; Draws in bottom-right corner of the screen
-        save_registers
-        vram_set_address (SLIDE_INDEX_ADDR)    ; Set VRAM address to bottom-right
+	.proc display_slide_number					; Draws in bottom-right corner of the screen
+		save_registers
+        vram_set_address (SLIDE_INDEX_ADDR)		; Set VRAM address to bottom-right
 
-        lda slide            ; slide is 0-based
+        lda slide						; load current slide idx
         clc
-        adc #1                ; make it 1-based
-        clc
-        adc #'0'            ; convert 1..9 to ASCII '1'..'9'
-        sta PPU_VRAM_IO        ; write the number
+        adc #1							; make it 1 based
+        jsr print_two_digits			; writes 2 chars (if necessary)
 
         lda #':'
-        sta PPU_VRAM_IO        ; write :
+        sta PPU_VRAM_IO					; write :
 
-        lda number_of_slides    ; assuming <= 9 slides
-        clc
-        adc #'0'
-        sta PPU_VRAM_IO            ; write the total amount of slides
+        lda number_of_slides
+        jsr print_two_digits			; writes 2 chars (if necessary)
 
         restore_regsiters
         rts
     .endproc
 
-	; .proc set_slide_idx_address
-	; 	save_registers
-		
-	; 	ldx #INDEX_X_POS
-	; 	ldy #INDEX_Y_POS
-	; 	lda #0					; accumulator will serve as the address storage
+	.proc print_two_digits
+        cmp #10
+        bcc @one_digit				; if A < 10 -> print single digit
 
-		
+        ; ---- two-digit number ----
+        ldy #0						; tens = 0
+		@tens_loop:
+        	cmp #10
+        	bcc @two_digits_ready
+        	sbc #10
+        	iny						; tens++
+        	bne @tens_loop
 
-	; 	restore_regsiters
-	; 	rts
-	; .endproc
+		@two_digits_ready:
+        	sta temp_ones			; store ones (0–9)
+        	tya						; A = tens
+        	clc
+        	adc #'0'
+        	sta PPU_VRAM_IO			; print tens digit
+
+        	lda temp_ones			; print ones digit
+        	clc
+        	adc #'0'
+        	sta PPU_VRAM_IO
+        rts
+
+		; ---- single-digit number ----
+		@one_digit:
+        	clc
+        	adc #'0'
+        	sta PPU_VRAM_IO
+        rts
+	.endproc
 
 .segment "RODATA"
 	default_palette: 	; background palette

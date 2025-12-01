@@ -49,4 +49,7 @@ m
 i
 t\s
 the sixth slide is a slide that has an absurdly long line of text to see what will happen when our poor little subroutine is expected to write such a long line of text (185 characters)\s
-the seventh slide is somehow even longer compared to the ridicilous slide number six because i wanted to know what would happen if it reached over 256 characters, this turned out to be challenging my creative writing wich is pretty sad because it's not even really that much text
+the seventh slide is somehow even longer compared to the ridicilous slide number six because i wanted to know what would happen if it reached over 256 characters, this turned out to be challenging my creative writing wich is pretty sad because it's not even really that much text\s
+the EIGHT\s
+THE nine\s
+THE TEN
