@@ -73,12 +73,14 @@ SPACE = ' '
 		@clear_memory:		; 8 blocks of memory X 256 = 2K cleared
 			sta 0, x		; store whatever a has in given address with offset in X
 			sta $0100, x
-			sta $0200, x
 			sta $0300, x
 			sta $0400, x
 			sta $0500, x
 			sta $0600, x
 			sta $0700, x
+			lda #$ff
+			sta $0200, x
+			lda #0
 			inx 
 			bne @clear_memory 	; loop will stop when X goes back to 0
 
