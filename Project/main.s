@@ -236,44 +236,52 @@ SPACE = ' '
 		rts 
 	.endproc
 
-	.proc scroll_next ;refactored (not done yet tho, not all features are present yet see comments)
+	.proc scroll_next
 		lda scroll_x
-		beq @forward
-		@back_loop:
+		beq forward
+		back_loop:
 			sta scroll_x	
-			pha
-			jsr ppu_update	;wait nmi
-			; jsr gamepad_poll
-			; lda gamepad
-			; and #PAD_A|PAD_RIGHT|PAD_B|PAD_LEFT
-			; bne @done
-			pla
-			clc
-			cmp #SCROLL_SPEED		;end transition when left side reached
-			bcc @done
-			sec
+			tay 
+			jsr ppu_update	; wait nmi
+			lda remaining_input_cooldown
+			bne skip_input_backwards
+				jsr gamepad_poll
+				lda gamepad
+				and #PAD_A|PAD_RIGHT|PAD_B|PAD_LEFT
+				bne skipped
+			skip_input_backwards:
+			tya 
+			clc 
+			cmp #SCROLL_SPEED 		; end transition when left side reached
+			bcc done
+			sec 
 			sbc #SCROLL_SPEED
-			jmp @back_loop
-		@forward: 
-			lda #0			
-		@fwd_loop:
-			sta scroll_x	
-			pha
-			jsr ppu_update	;wait nmi
-			; jsr gamepad_poll
-			; lda gamepad
-			; and #PAD_A|PAD_RIGHT|PAD_B|PAD_LEFT
-			; bne @done
-			pla
-			clc
+			jmp back_loop
+		forward:
+		lda #0
+		forward_loop:
+			sta scroll_x
+			tay 
+			jsr ppu_update 	; wait nmi
+			lda remaining_input_cooldown
+			bne skip_input_forward
+				jsr gamepad_poll
+				lda gamepad
+				and #PAD_A|PAD_RIGHT|PAD_B|PAD_LEFT
+				bne skipped
+			skip_input_forward:
+			tya 
+			clc 
 			adc #SCROLL_SPEED
-			bcs @done
-			jmp @fwd_loop
-		@done:
-		@no_trans:
+			bcs done
+			jmp forward_loop
+		skipped:
+			lda #INPUT_COOLDOWN
+			sta remaining_input_cooldown
+		done:
 			lda #0
 			sta scroll_x
-			rts
+			rts 
 	.endproc
 
 	.proc go_to_next_slide
