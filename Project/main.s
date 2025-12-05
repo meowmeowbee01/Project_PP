@@ -45,7 +45,8 @@ MAX_HEIGHT = $1e
 
 .segment "CODE" 	; main code segment for the program
 	.include "settings.s"
-	SLIDE_INDEX_ADDR = NAME_TABLE_0_ADDRESS + (INDEX_Y_POS * $20) + INDEX_X_POS
+	SLIDE_INDEX_ADDR0 = NAME_TABLE_0_ADDRESS + (INDEX_Y_POS * $20) + INDEX_X_POS
+	SLIDE_INDEX_ADDR1 = NAME_TABLE_1_ADDRESS + (INDEX_Y_POS * $20) + INDEX_X_POS
 	MAX_WIDTH = $20 - PADDING_RIGHT
 	text:
 		.incbin "content.txt"
@@ -189,9 +190,9 @@ MAX_HEIGHT = $1e
 			clear_nametable(NAME_TABLE_1_ADDRESS)
 			jsr go_to_previous_slide
 			jsr display_current_slide
-			jsr prepare_next_slide_nametable
 			lda #$ff ; screen width
 			sta scroll_x
+			jsr prepare_next_slide_nametable
 			jsr ppu_update
 			jsr scroll_next
 			jmp mainloop
@@ -453,7 +454,7 @@ MAX_HEIGHT = $1e
 			increment_16i_pointer character_pointer
 			jmp text_loop 			; loop again
 		exit:
-			jsr display_slide_number ; display the slide idx
+			jsr display_slide_number0 ; display the slide idx
 			rts 					; return from subroutine
 	.endproc
 
@@ -497,6 +498,7 @@ MAX_HEIGHT = $1e
 			increment_16i_pointer character_pointer_next
 			jmp text_loop 			; loop again
 		exit:
+			jsr display_slide_number1
 			rts 					; return from subroutine
 	.endproc
 
@@ -604,13 +606,32 @@ MAX_HEIGHT = $1e
 		rts 
 	.endproc
 
-	.proc display_slide_number 					; draws in bottom-right corner of the screen
+	.proc display_slide_number0 					; draws in bottom-right corner of the screen
 		save_registers
-		vram_set_address (SLIDE_INDEX_ADDR) 	; set VRAM address to bottom-right
+		vram_set_address (SLIDE_INDEX_ADDR0) 	; set VRAM address to bottom-right
 
 		lda slide 						; load current slide idx
 		clc 
 		adc #1 							; make it 1 based
+		jsr print_two_digits 			; writes 2 chars (if necessary)
+
+		lda #'/'
+		sta PPU_VRAM_IO 				; write '/'
+
+		lda number_of_slides
+		jsr print_two_digits 			; writes 2 chars (if necessary)
+
+		restore_regsiters
+		rts 
+	.endproc
+
+	.proc display_slide_number1 					; draws in bottom-right corner of the screen
+		save_registers
+		vram_set_address (SLIDE_INDEX_ADDR1) 	; set VRAM address to bottom-right
+		
+		lda slide 						; load current slide idx
+		clc 
+		adc #2 							; add 1 to make it 1-based (first slide is 0) and add 1 more to show the slide number of the next slide
 		jsr print_two_digits 			; writes 2 chars (if necessary)
 
 		lda #'/'
