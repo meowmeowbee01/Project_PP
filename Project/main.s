@@ -361,28 +361,48 @@ MAX_HEIGHT = $1e
 	.endproc
 
 	.proc find_next_slide_start
-		ldy #0
+        ldy #0
 		lda (character_pointer), y
-		beq @wrap_to_first
+		beq reset_slides
 
-		lda character_pointer
+        lda character_pointer
 		sta character_pointer_next
 		lda character_pointer + 1
 		sta character_pointer_next + 1
+		
+        ldx #0
+        jmp skip_increment                 ; character_pointer points at the end of previous slide so don't increment the first time
+        find_next_slide:                  ; proceed if they are equal
+            increment_16i_pointer character_pointer_next
+            skip_increment:
+            lda (character_pointer_next), y     ; y is 0 so just the character the pointer points to
+            beq reset_slides             ; if it's 0, go back to first slide since there's a 0 after the content
+            cmp #ESCAPE_CHAR
+            bne find_next_slide
+                ldy #1
+                lda (character_pointer_next), y         ; check the next character
+                ldy #0
+                cmp #SLIDE_SEPERATOR
+                bne find_next_slide
 
-		increment_16i_pointer character_pointer_next
-		increment_16i_pointer character_pointer_next
-		lda (character_pointer_next), y
-		cmp #CARRIAGE_RETURN
-		bne @skip_CR
-			increment_16i_pointer character_pointer_next
-		@skip_CR:
-			increment_16i_pointer character_pointer_next
-			rts 
-		@wrap_to_first:
-			assign_16i character_pointer_next, text
-			rts 
-	.endproc
+        increment_16i_pointer character_pointer_next     ; skip over \
+        increment_16i_pointer character_pointer_next     ; skip over s
+        lda (character_pointer_next), y
+        cmp #CARRIAGE_RETURN
+        bne skip_CR_skip
+            increment_16i_pointer character_pointer_next ; skip over CR
+        skip_CR_skip:
+        increment_16i_pointer character_pointer_next     ; skip over newline
+        jmp exit
+
+        reset_slides:
+            assign_16i character_pointer_next, text    ; set current slide pointer to the first slide
+
+        exit:
+            rts 
+    .endproc
+
+	
 
 	.proc prepare_next_slide_nametable
 		jsr find_next_slide_start
