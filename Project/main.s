@@ -3,7 +3,6 @@ NEWLINE = $a
 CARRIAGE_RETURN = $d
 TAB = '	'
 SPACE = ' '
-MAX_HEIGHT = $1e
 
 .segment "HEADER"
 	INES_MAPPER = 0				; 0 = NROM
@@ -27,6 +26,7 @@ MAX_HEIGHT = $1e
 
 .segment "ZEROPAGE"
 	text_line: .res 1
+	text_column: .res 1
 	slide: .res 1
 	remaining_input_cooldown: .res 1
 	current_palette: .res 1
@@ -48,6 +48,7 @@ MAX_HEIGHT = $1e
 	SLIDE_INDEX_ADDR0 = NAME_TABLE_0_ADDRESS + (INDEX_Y_POS * $20) + INDEX_X_POS
 	SLIDE_INDEX_ADDR1 = NAME_TABLE_1_ADDRESS + (INDEX_Y_POS * $20) + INDEX_X_POS
 	MAX_WIDTH = $20 - PADDING_RIGHT
+	MAX_HEIGHT = $1e - PADDING_BOTTOM
 	text:
 		.incbin "content.txt"
 		.byte 0
@@ -208,9 +209,12 @@ MAX_HEIGHT = $1e
 			cmp #ESCAPE_CHAR
 			bne loop
 				ldy #1
-				lda (character_pointer), y 		; check the next character
+				lda (character_pointer), y 	; check the next character
 				cmp #SLIDE_SEPERATOR
 				bne loop
+				ldy #2
+				lda (character_pointer), y 	; check the character after slide seperator
+				beq exit 	; if it's 0, there's a trailing slide terminator
 				inx 
 				jmp loop
 		exit:
@@ -219,23 +223,14 @@ MAX_HEIGHT = $1e
 			rts 
 	.endproc
 
-	.proc set_padding
-		ldx #0
-		loop:
-			cpx #PADDING_TOP
-			beq exit
-			inx 
-			jmp loop
-		exit:
-		stx text_line
-		rts 
-	.endproc
-
 	.proc setup_first_slide
 		lda #0
 		sta slide
 		assign_16i character_pointer, text
-		jsr set_padding
+		ldx #PADDING_TOP
+		stx text_line
+		ldx #PADDING_LEFT
+		stx text_column
 		jsr set_attributes
 		rts 
 	.endproc
@@ -252,6 +247,9 @@ MAX_HEIGHT = $1e
 				jsr gamepad_poll
 				lda gamepad
 				and #PAD_A|PAD_RIGHT|PAD_B|PAD_LEFT
+				bne skipped
+				lda JOYPAD2
+				and #GUN_TRIGGER
 				bne skipped
 			skip_input_backwards:
 			tya 
@@ -273,6 +271,9 @@ MAX_HEIGHT = $1e
 				lda gamepad
 				and #PAD_A|PAD_RIGHT|PAD_B|PAD_LEFT
 				bne skipped
+				lda JOYPAD2
+				and #GUN_TRIGGER
+				bne skipped
 			skip_input_forward:
 			tya 
 			clc 
@@ -289,7 +290,10 @@ MAX_HEIGHT = $1e
 	.endproc
 
 	.proc go_to_next_slide
-		jsr set_padding
+		ldx #PADDING_TOP
+		stx text_line
+		ldx #PADDING_LEFT
+		stx text_column
 		ldx #0
 		ldy #0
 		jmp skip_increment 				; character_pointer points at the end of previous slide so don't increment the first time
@@ -405,7 +409,10 @@ MAX_HEIGHT = $1e
 
 	.proc prepare_next_slide_nametable
 		jsr find_next_slide_start
-		jsr set_padding
+		ldx #PADDING_TOP
+		stx text_line
+		ldx #PADDING_LEFT
+		stx text_column
 		jsr set_attributes_next
 		jsr display_next_slide_nt1
 		rts 
@@ -423,11 +430,12 @@ MAX_HEIGHT = $1e
 			skip_tab:
 			cmp #NEWLINE 			; check if it's a newline character
 			bne skip_newline 		; if it isn't, branch
-			force_newline:
 				inc text_line 		; increment text line
 				lda text_line
 				cmp #MAX_HEIGHT
 				beq exit
+				ldx #PADDING_LEFT
+				stx text_column
 				ldx #0
 				jsr vram_set_address_text
 				jmp skip_write
@@ -447,13 +455,27 @@ MAX_HEIGHT = $1e
 					increment_16i_pointer character_pointer
 					jmp skip_write
 			skip_escape:
-				sta PPU_VRAM_IO 	; write it to the ppu io register
+				sta PPU_VRAM_IO 	; write the character to the ppu io register
+				inc text_column
+				lda text_column
+				cmp #MAX_WIDTH
+				bne skip_offscreen
+					inc text_line 		; increment text line
+					lda text_line
+					cmp #MAX_HEIGHT
+					beq exit
+					ldx #PADDING_LEFT
+					stx text_column
+					ldx #0
+					jsr vram_set_address_text
+					jmp text_loop
+				skip_offscreen:
 			skip_write:
 			increment_16i_pointer character_pointer
-			jmp text_loop 			; loop again
+			jmp text_loop 				; loop again
 		exit:
-			jsr display_slide_number0 ; display the slide idx
-			rts 					; return from subroutine
+			jsr display_slide_number0 	; display the slide idx
+			rts 						; return from subroutine
 	.endproc
 
 	.proc display_next_slide_nt1
@@ -472,6 +494,8 @@ MAX_HEIGHT = $1e
 				lda text_line
 				cmp #MAX_HEIGHT
 				beq exit
+				ldx #PADDING_LEFT
+				stx text_column
 				ldx #1
 				jsr vram_set_address_text
 				jmp skip_write
@@ -481,7 +505,7 @@ MAX_HEIGHT = $1e
 			cmp #ESCAPE_CHAR					; found '\' do this:
 			bne skip_escape 					; didn't find '\' then skip
 				iny 							; increase y offset
-				lda (character_pointer_next),y 		; get next character
+				lda (character_pointer_next),y 	; get next character
 				dey 							; decrease y offset
 				cmp #SLIDE_SEPERATOR 			; found 's' ?
 				beq exit 						; exit this procedure
@@ -491,7 +515,21 @@ MAX_HEIGHT = $1e
 					increment_16i_pointer character_pointer_next
 					jmp skip_write
 			skip_escape:
-				sta PPU_VRAM_IO 	; write it to the ppu io register
+				sta PPU_VRAM_IO 	; write the character to the ppu io register
+				inc text_column
+				lda text_column
+				cmp #MAX_WIDTH
+				bne skip_offscreen
+					inc text_line 		; increment text line
+					lda text_line
+					cmp #MAX_HEIGHT
+					beq exit
+					ldx #PADDING_LEFT
+					stx text_column
+					ldx #1
+					jsr vram_set_address_text
+					jmp text_loop
+				skip_offscreen:
 			skip_write:
 			increment_16i_pointer character_pointer_next
 			jmp text_loop 			; loop again
@@ -578,7 +616,7 @@ MAX_HEIGHT = $1e
 
 	.proc vram_set_address_text
 		pha 
-		txa 
+		txa 				; x = 0 for current slide, x = 1 for next slide
 		asl 
 		asl 
 		sta temp
@@ -598,7 +636,7 @@ MAX_HEIGHT = $1e
 		asl 
 		asl 
 		clc 
-		adc #PADDING_LEFT
+		adc text_column
 		sta PPU_VRAM_ADDRESS		; write low byte
 		pla 
 		rts 
@@ -613,8 +651,8 @@ MAX_HEIGHT = $1e
 		adc #1 							; make it 1 based
 		jsr print_two_digits 			; writes 2 chars (if necessary)
 
-		lda #'/'
-		sta PPU_VRAM_IO 				; write '/'
+		lda #INDEX_SEPERATOR
+		sta PPU_VRAM_IO 				; write an index seperator
 
 		lda number_of_slides
 		jsr print_two_digits 			; writes 2 chars (if necessary)
@@ -632,8 +670,8 @@ MAX_HEIGHT = $1e
 		adc #2 							; add 1 to make it 1-based (first slide is 0) and add 1 more to show the slide number of the next slide
 		jsr print_two_digits 			; writes 2 chars (if necessary)
 
-		lda #'/'
-		sta PPU_VRAM_IO 				; write '/'
+		lda #INDEX_SEPERATOR
+		sta PPU_VRAM_IO 				; write an index seperator
 
 		lda number_of_slides
 		jsr print_two_digits 			; writes 2 chars (if necessary)
