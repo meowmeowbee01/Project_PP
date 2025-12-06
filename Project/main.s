@@ -36,6 +36,8 @@ SPACE = ' '
 	scroll_x: .res 1				; scroll offset
 	temp_ones: .res 1
 	temp: .res 1
+	sfx_channel: .res 1				; N amount of sfx channels
+	temp_sound: .res 1				; temp place to store sfx index
 
 .segment "OAM"
 	oam: .res $100
@@ -49,6 +51,30 @@ SPACE = ' '
 	SLIDE_INDEX_ADDR1 = NAME_TABLE_1_ADDRESS + (INDEX_Y_POS * $20) + INDEX_X_POS
 	MAX_WIDTH = $20 - PADDING_RIGHT
 	MAX_HEIGHT = $1e - PADDING_BOTTOM
+
+	; Famistudio config
+	FAMISTUDIO_CFG_EXTERNAL 		= 1
+	FAMISTUDIO_CFG_DPCM_SUPPORT 	= 1
+	FAMISTUDIO_CFG_SFX_SUPPORT 		= 1
+	FAMISTUDIO_CFG_SFX_STREAMS 		= 2
+	FAMISTUDIO_CFG_EQUALIZER 		= 1
+	FAMISTUDIO_USE_VOLUME_TRACK 	= 1
+	FAMISTUDIO_USE_PITCH_TRACK 		= 1
+	FAMISTUDIO_USE_SLIDE_NOTES 		= 1
+	FAMISTUDIO_USE_VIBRATO 			= 1
+	FAMISTUDIO_USE_ARPEGGIO 		= 1
+	FAMISTUDIO_CFG_SMOOTH_VIBRATO 	= 1
+	FAMISTUDIO_USE_RELEASE_NOTES 	= 1
+	FAMISTUDIO_DPCM_OFF 			= $e000
+
+	; CA65-specifc config.
+	.define FAMISTUDIO_CA65_ZP_SEGMENT 		ZEROPAGE
+	.define FAMISTUDIO_CA65_RAM_SEGMENT 	BSS
+	.define FAMISTUDIO_CA65_CODE_SEGMENT 	CODE
+
+	.include "famistudio_ca65.s"
+	.include "slides-sfx.s"	
+
 	text:
 		.incbin "content.txt"
 		.byte 0
@@ -122,7 +148,7 @@ SPACE = ' '
 
 	.proc nmi
 		save_registers
-
+		;jsr init_sound			; does the whole initialising sound thing <-- THIS MF MAKES THE SLIDES BREAK
 		lda #0
 		cmp remaining_input_cooldown
 		beq skip_decrement
@@ -149,6 +175,8 @@ SPACE = ' '
 		lda ppu_ctl1
 		sta PPU_MASK
 
+		;jsr famistudio_update 		; calls famistudio play routine
+
 		; flag PPU update complete
 		ldx #0
 		stx nmi_ready
@@ -172,6 +200,7 @@ SPACE = ' '
 		bne next_slide
 		jmp mainloop
 		next_slide:
+			;jsr play_next_slide_sfx		; pretty self explanatory no?
 			lda #INPUT_COOLDOWN 			; set remaining input cooldown
 			sta remaining_input_cooldown
 			lda #SCROLL_SPEED
@@ -188,6 +217,7 @@ SPACE = ' '
 			jsr ppu_update
 			jmp mainloop
 		prev_slide:
+			;jsr play_prev_slide_sfx			; pretty self explanatory no?
 			lda #INPUT_COOLDOWN 			; set remaining input cooldown
 			sta remaining_input_cooldown
 			jsr ppu_off
@@ -712,6 +742,54 @@ SPACE = ' '
 			adc #'0'
 			sta PPU_VRAM_IO
 		rts 
+	.endproc
+
+	.proc play_sfx
+		sta temp_sound 		; save the sound effect number
+		tya					; save other registers
+		pha
+		txa
+		pha
+
+		lda temp_sound 		; get the sound effect number
+		ldx sfx_channel		; choose the channel to play audio on
+		jsr famistudio_sfx_play 
+
+		pla					; restores registers
+		tax
+		pla
+		tay
+		rts
+	.endproc
+
+	.proc init_sound
+		save_registers
+		lda #1					; NTSC
+		ldx #0
+		ldy #0
+		jsr famistudio_init
+
+		ldx #.lobyte(sounds)	; set the address of SFX
+		ldy #.hibyte(sounds)
+		jsr famistudio_sfx_init
+		restore_regsiters
+		rts
+	.endproc
+
+	.proc play_next_slide_sfx
+			lda #FAMISTUDIO_SFX_CH0
+			sta sfx_channel
+			lda #0					; play next slide SFX
+			jsr play_sfx
+			rts
+	.endproc
+
+	.proc play_prev_slide_sfx
+			lda #FAMISTUDIO_SFX_CH0
+			sta sfx_channel
+			lda #1					; play previous slide SFX
+			jsr play_sfx
+			rts
 	.endproc
 
 .segment "RODATA"
