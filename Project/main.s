@@ -263,10 +263,7 @@ SPACE = ' '
 		lda #0
 		sta slide
 		assign_16i character_pointer, text
-		ldx #PADDING_TOP
-		stx text_line
-		ldx #PADDING_LEFT
-		stx text_column
+		set_padding
 		jsr set_attributes
 		rts 
 	.endproc
@@ -326,10 +323,7 @@ SPACE = ' '
 	.endproc
 
 	.proc go_to_next_slide
-		ldx #PADDING_TOP
-		stx text_line
-		ldx #PADDING_LEFT
-		stx text_column
+		set_padding
 		ldx #0
 		ldy #0
 		jmp skip_increment 				; character_pointer points at the end of previous slide so don't increment the first time
@@ -443,10 +437,7 @@ SPACE = ' '
 
 	.proc prepare_next_slide_nametable
 		jsr find_next_slide_start
-		ldx #PADDING_TOP
-		stx text_line
-		ldx #PADDING_LEFT
-		stx text_column
+		set_padding
 		jsr set_attributes_next
 		jsr display_next_slide_nt1
 		rts 
@@ -468,8 +459,7 @@ SPACE = ' '
 				lda text_line
 				cmp #MAX_HEIGHT
 				beq exit
-				ldx #PADDING_LEFT
-				stx text_column
+				set_padding_left
 				ldx #0
 				jsr vram_set_address_text
 				jmp skip_write
@@ -498,8 +488,7 @@ SPACE = ' '
 					lda text_line
 					cmp #MAX_HEIGHT
 					beq exit
-					ldx #PADDING_LEFT
-					stx text_column
+					set_padding_left
 					ldx #0
 					jsr vram_set_address_text
 			skip_write:
@@ -526,8 +515,7 @@ SPACE = ' '
 				lda text_line
 				cmp #MAX_HEIGHT
 				beq exit
-				ldx #PADDING_LEFT
-				stx text_column
+				set_padding_left
 				ldx #1
 				jsr vram_set_address_text
 				jmp skip_write
@@ -556,8 +544,7 @@ SPACE = ' '
 					lda text_line
 					cmp #MAX_HEIGHT
 					beq exit
-					ldx #PADDING_LEFT
-					stx text_column
+					set_padding_left
 					ldx #1
 					jsr vram_set_address_text
 			skip_write:

@@ -69,3 +69,19 @@
 	adc #0
 	sta pointer + 1
 .endmacro
+
+
+.macro set_padding
+	set_padding_top
+	set_padding_left
+.endmacro
+
+.macro set_padding_top
+	ldx #PADDING_TOP
+	stx text_line
+.endmacro
+.macro set_padding_left
+	ldx #PADDING_LEFT
+	stx text_column	
+.endmacro
+	
