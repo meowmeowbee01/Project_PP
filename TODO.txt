@@ -5,6 +5,7 @@ unduplicate code: display_current_slide & display_next_slide_nt1, set_attributes
 Figure something out for low res images (maybe a special character that represents the start of an image and possibly use the second pattern table to store images and also do it in a seperate file)
 (ismail)make scroll zigzag
 (LIAM) Make editor (on screen keyboard (with light gun))
+a '\s' at the end shouldn't cause UB
 
 WIP:
 (DAN) Display indexes only when slides are not scrolling

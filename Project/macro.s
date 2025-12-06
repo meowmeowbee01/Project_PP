@@ -59,3 +59,13 @@
 	sbc #0
 	sta pointer + 1
 .endmacro
+
+.macro add16i pointer, value
+	lda pointer
+	clc 
+	adc #value
+	sta pointer
+	lda pointer + 1
+	adc #0
+	sta pointer + 1
+.endmacro

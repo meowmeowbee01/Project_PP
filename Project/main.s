@@ -174,8 +174,12 @@ SPACE = ' '
 		next_slide:
 			lda #INPUT_COOLDOWN 			; set remaining input cooldown
 			sta remaining_input_cooldown
-			jsr scroll_next
+			lda #SCROLL_SPEED
+			beq skip_scroll_forward 		; skip scroll when speed is 0
+				jsr scroll_next
+			skip_scroll_forward:
 			jsr ppu_off
+			; TODO: take less time between ppu_off and ppu_update to mitigate flicker
 			clear_nametable(NAME_TABLE_0_ADDRESS)
 			clear_nametable(NAME_TABLE_1_ADDRESS)
 			jsr go_to_next_slide
@@ -187,8 +191,10 @@ SPACE = ' '
 			lda #INPUT_COOLDOWN 			; set remaining input cooldown
 			sta remaining_input_cooldown
 			jsr ppu_off
+			; TODO: take less time between ppu_off and ppu_update to mitigate flicker
 			clear_nametable(NAME_TABLE_0_ADDRESS)
 			clear_nametable(NAME_TABLE_1_ADDRESS)
+			; TODO: skip scroll when speed is 0
 			jsr go_to_previous_slide
 			jsr display_current_slide
 			lda #$ff ; screen width
@@ -310,8 +316,7 @@ SPACE = ' '
 				cmp #SLIDE_SEPERATOR
 				bne find_next_slide
 		
-		increment_16i_pointer character_pointer 	; skip over \
-		increment_16i_pointer character_pointer 	; skip over s
+		add16i character_pointer,2 				; skip over \s
 		lda (character_pointer), y
 		cmp #CARRIAGE_RETURN
 		bne skip_CR_skip
@@ -390,8 +395,7 @@ SPACE = ' '
 				cmp #SLIDE_SEPERATOR
 				bne find_next_slide
 
-		increment_16i_pointer character_pointer_next 	; skip over \
-		increment_16i_pointer character_pointer_next 	; skip over s
+		add16i character_pointer_next,2 				; skip over \s
 		lda (character_pointer_next), y
 		cmp #CARRIAGE_RETURN
 		bne skip_CR_skip
@@ -459,7 +463,7 @@ SPACE = ' '
 				inc text_column
 				lda text_column
 				cmp #MAX_WIDTH
-				bne skip_offscreen
+				bne skip_write
 					inc text_line 		; increment text line
 					lda text_line
 					cmp #MAX_HEIGHT
@@ -468,8 +472,6 @@ SPACE = ' '
 					stx text_column
 					ldx #0
 					jsr vram_set_address_text
-					jmp text_loop
-				skip_offscreen:
 			skip_write:
 			increment_16i_pointer character_pointer
 			jmp text_loop 				; loop again
@@ -519,7 +521,7 @@ SPACE = ' '
 				inc text_column
 				lda text_column
 				cmp #MAX_WIDTH
-				bne skip_offscreen
+				bne skip_write
 					inc text_line 		; increment text line
 					lda text_line
 					cmp #MAX_HEIGHT
@@ -528,8 +530,6 @@ SPACE = ' '
 					stx text_column
 					ldx #1
 					jsr vram_set_address_text
-					jmp text_loop
-				skip_offscreen:
 			skip_write:
 			increment_16i_pointer character_pointer_next
 			jmp text_loop 			; loop again
