@@ -1,6 +1,5 @@
 IF ANYONE STARTS WORKING ON A TODO ADD YOUR NAME AT THE END SO WE DONT HAVE 2 PEOPLE DOING THE SAME THING
 IDEAS:
-fix many newlines leading to writing text in atrribute area
 unduplicate code: display_current_slide & display_next_slide_nt1, set_attributes & set_attributes_next
 (DAN or arno) Presentation name
 Figure something out for low res images (maybe a special character that represents the start of an image and possibly use the second pattern table to store images and also do it in a seperate file)
@@ -12,6 +11,7 @@ WIP:
 (DAN) Play woosh sound upon slide transition
 
 DONE:
+(arno) fix many newlines leading to writing text in atrribute area
 (ismail)next slide button pressed during animation => skip animation
 (dan) Add the current slide number in the bottom right of the screen
 (arno) fix issues caused by too much content on a slide
