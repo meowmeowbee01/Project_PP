@@ -34,7 +34,7 @@ SPACE = ' '
 	character_pointer_next: .res 2 	; points to start of next slide
 	number_of_slides: .res 1
 	scroll_x: .res 1				; scroll offset
-	temp_ones: .res 1
+	current_nametable: .res 1
 	temp: .res 1
 	sfx_channel: .res 1				; N amount of sfx channels
 	temp_sound: .res 1				; temp place to store sfx index
@@ -508,6 +508,7 @@ SPACE = ' '
 				beq exit
 				set_padding_left
 				ldx #0
+				stx current_nametable
 				jsr vram_set_address_text
 				jmp skip_write
 			skip_newline:
@@ -537,6 +538,7 @@ SPACE = ' '
 					beq exit
 					set_padding_left
 					ldx #0
+					stx current_nametable
 					jsr vram_set_address_text
 			skip_write:
 			increment_16i_pointer character_pointer
@@ -564,6 +566,7 @@ SPACE = ' '
 				beq exit
 				set_padding_left
 				ldx #1
+				stx current_nametable
 				jsr vram_set_address_text
 				jmp skip_write
 			skip_newline:
@@ -593,6 +596,7 @@ SPACE = ' '
 					beq exit
 					set_padding_left
 					ldx #1
+					stx current_nametable	
 					jsr vram_set_address_text
 			skip_write:
 			increment_16i_pointer character_pointer_next
@@ -620,6 +624,7 @@ SPACE = ' '
 				beq exit
 				set_padding_left
 				ldx #1
+				stx current_nametable
 				jsr vram_set_address_text
 				jmp skip_write
 			skip_newline:
@@ -649,6 +654,7 @@ SPACE = ' '
 					beq exit
 					set_padding_left
 					ldx #1
+					stx current_nametable
 					jsr vram_set_address_text
 			skip_write:
 			increment_16i_pointer character_pointer_next
@@ -693,6 +699,7 @@ SPACE = ' '
 			bne @loop
 
 		ldx #0
+		stx current_nametable
 		jsr vram_set_address_text 	; set the vram address
 		restore_regsiters
 		rts 
@@ -729,6 +736,7 @@ SPACE = ' '
 			bne @loop
 
 		ldx #1
+		stx current_nametable
 		jsr vram_set_address_text 	; set the vram address
 		restore_regsiters
 		rts 
@@ -767,6 +775,7 @@ SPACE = ' '
 			bne @loop
 
 		ldx #1
+		stx current_nametable
 		jsr vram_set_address_text 	; set the vram address
 		restore_regsiters
 		rts 
@@ -774,7 +783,7 @@ SPACE = ' '
 
 	.proc vram_set_address_text
 		pha 
-		txa 				; x = 0 for current slide, x = 1 for next slide
+		lda current_nametable			; x = 0 for current slide, x = 1 for next slide
 		asl 
 		asl 
 		sta temp
@@ -852,13 +861,13 @@ SPACE = ' '
 			bne @tens_loop
 
 		@two_digits_ready:
-			sta temp_ones 			; store ones (0–9)
+			sta temp 			; store ones (0–9)
 			tya 					; A = tens
 			clc 
 			adc #'0'
 			sta PPU_VRAM_IO 		; print tens digit
 
-			lda temp_ones 			; print ones digit
+			lda temp 			; print ones digit
 			clc 
 			adc #'0'
 			sta PPU_VRAM_IO
