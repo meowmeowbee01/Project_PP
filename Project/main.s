@@ -223,11 +223,16 @@ SPACE = ' '
 			bne loop
 				ldy #1
 				lda (character_pointer), y 	; check the next character
+				cmp #ESCAPE_CHAR
+				bne skip_escape_escape
+					increment_16i_pointer character_pointer
+					jmp loop
+				skip_escape_escape:
 				cmp #SLIDE_SEPERATOR
 				bne loop
 				ldy #2
 				lda (character_pointer), y 	; check the character after slide seperator
-				beq exit 	; if it's 0, there's a trailing slide terminator
+				beq exit 					; if it's 0, there's a trailing slide terminator
 				inx 
 				jmp loop
 		exit:
@@ -316,6 +321,11 @@ SPACE = ' '
 				ldy #1
 				lda (character_pointer), y 		; check the next character
 				ldy #0
+				cmp #ESCAPE_CHAR
+				bne skip_escape_escape
+					increment_16i_pointer character_pointer
+					jmp find_next_slide
+				skip_escape_escape:
 				cmp #SLIDE_SEPERATOR
 				bne find_next_slide
 		
@@ -380,7 +390,9 @@ SPACE = ' '
 		ldy #0
 		text_loop:
 			lda (temp_pointer),y 	; get current text byte (2 bytes address)
-			beq exit 					; if it's 0, exit
+			bne skip_exit 				; if it's 0, exit
+				jmp exit
+			skip_exit:
 			cmp #TAB
 			bne skip_tab
 				jsr write_tab
@@ -407,11 +419,15 @@ SPACE = ' '
 				cmp #SLIDE_SEPERATOR 			; found 's' ?
 				beq exit 						; exit this procedure
 				cmp #TAB_CHAR 					; found 't' ?
-				bne skip_tab_escape 				; skip writing tab if there is none
+				bne skip_tab_escape 			; skip writing tab if there is none
 					jsr write_tab
 					increment_16i_pointer temp_pointer
 					jmp skip_write
 				skip_tab_escape:
+				cmp #ESCAPE_CHAR
+				bne skip_escape_escape
+					increment_16i_pointer temp_pointer
+				skip_escape_escape:
 				lda temp
 			skip_escape:
 				sta PPU_VRAM_IO 	; write the character to the ppu io register

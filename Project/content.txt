@@ -9,4 +9,16 @@ next slide should be empty\s
 \s
 previous slide should be empty\s
  !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~\s
+seperate slides with
+\\s escape sequence
+
+input tabs with
+\\t escape sequence
+
+input '\' with
+\\\\ escape sequence
+(or just '\')
+
+input "\\s" with
+"\\\\s" escape sequence\s
 final slide
