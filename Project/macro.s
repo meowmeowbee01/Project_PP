@@ -70,6 +70,12 @@
 	sta pointer + 1
 .endmacro
 
+.macro assign16i_pointer dest, original
+	lda original
+	sta dest
+	lda original + 1
+	sta dest + 1
+.endmacro
 
 .macro set_padding
 	set_padding_top
