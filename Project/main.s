@@ -457,7 +457,7 @@ SPACE = ' '
 			increment_16i_pointer temp_pointer
 			jmp text_loop 				; loop again
 		exit:
-			;jsr display_slide_number0 	; display the slide idx
+			jsr display_slide_number 	; display the slide idx
 			rts 						; return from subroutine
 	.endproc
 
@@ -535,32 +535,18 @@ SPACE = ' '
 		rts 
 	.endproc
 
-	.proc display_slide_number0 					; draws in bottom-right corner of the screen
+	.proc display_slide_number 					; draws in bottom-right corner of the screen
 		save_registers
-		vram_set_address (SLIDE_INDEX_ADDR0) 	; set VRAM address to bottom-right
-
+		lda current_nametable					; load the current name_table
+		bne name_table_1						; if it is not 0, go to the section for nametable 1
+			vram_set_address (SLIDE_INDEX_ADDR0) 	; set VRAM address to bottom-right of nametable 0
+			jmp index_set						; and go to the section where the index is set
+		name_table_1:							; if it is 1
+			vram_set_address (SLIDE_INDEX_ADDR1) ; set the vram address to the bottom right of nametable 1
+		index_set:
 		lda slide 						; load current slide idx
 		clc 
 		adc #1 							; make it 1 based
-		jsr print_two_digits 			; writes 2 chars (if necessary)
-
-		lda #INDEX_SEPERATOR
-		sta PPU_VRAM_IO 				; write an index seperator
-
-		lda number_of_slides
-		jsr print_two_digits 			; writes 2 chars (if necessary)
-
-		restore_regsiters
-		rts 
-	.endproc
-
-	.proc display_slide_number1 					; draws in bottom-right corner of the screen
-		save_registers
-		vram_set_address (SLIDE_INDEX_ADDR1) 	; set VRAM address to bottom-right
-		
-		lda slide 						; load current slide idx
-		clc 
-		adc #2 							; add 1 to make it 1-based (first slide is 0) and add 1 more to show the slide number of the next slide
 		jsr print_two_digits 			; writes 2 chars (if necessary)
 
 		lda #INDEX_SEPERATOR
