@@ -86,8 +86,18 @@
 	ldx #PADDING_TOP
 	stx text_line
 .endmacro
+
 .macro set_padding_left
 	ldx #PADDING_LEFT
 	stx text_column	
 .endmacro
 	
+.macro set_nametable_0
+	ldx #0
+	stx current_nametable
+.endmacro
+
+.macro set_nametable_1
+	ldx #1
+	stx current_nametable
+.endmacro

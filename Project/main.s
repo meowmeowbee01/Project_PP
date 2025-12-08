@@ -31,7 +31,7 @@ SPACE = ' '
 	remaining_input_cooldown: .res 1
 	current_palette: .res 1
 	character_pointer: .res 2 		; points to start of slide
-	character_pointer_next: .res 2 	; points to start of next slide
+	temp_pointer: .res 2 	; points to start of next slide
 	number_of_slides: .res 1
 	scroll_x: .res 1				; scroll offset
 	current_nametable: .res 1
@@ -139,7 +139,7 @@ SPACE = ' '
 		jsr setup_first_slide
 		jsr set_number_of_slides
 		jsr display_current_slide
-		jsr prepare_next_slide_nametable
+		;jsr prepare_next_slide_nametable
 
 		jsr ppu_update
 
@@ -203,6 +203,11 @@ SPACE = ' '
 			;jsr play_next_slide_sfx		; pretty self explanatory no?
 			lda #INPUT_COOLDOWN 			; set remaining input cooldown
 			sta remaining_input_cooldown
+			jsr ppu_off
+			clear_nametable(NAME_TABLE_1_ADDRESS)
+			set_nametable_1
+			jsr go_to_next_slide
+			jsr display_current_slide
 			lda #SCROLL_SPEED
 			beq skip_scroll_forward 		; skip scroll when speed is 0
 				jsr scroll_next
@@ -210,10 +215,10 @@ SPACE = ' '
 			jsr ppu_off
 			; TODO: take less time between ppu_off and ppu_update to mitigate flicker
 			clear_nametable(NAME_TABLE_0_ADDRESS)
-			clear_nametable(NAME_TABLE_1_ADDRESS)
-			jsr go_to_next_slide
+			set_nametable_0
 			jsr display_current_slide
-			jsr prepare_next_slide_nametable
+			lda #0
+			sta scroll_x
 			jsr ppu_update
 			jmp mainloop
 		prev_slide:
@@ -224,14 +229,16 @@ SPACE = ' '
 			; TODO: take less time between ppu_off and ppu_update to mitigate flicker
 			clear_nametable(NAME_TABLE_0_ADDRESS)
 			clear_nametable(NAME_TABLE_1_ADDRESS)
-			; TODO: skip scroll when speed is 0
+			set_nametable_1
+			jsr display_current_slide
+			set_nametable_0				; leave this here (it needs to be 0 for the go to previous slide subroutine)
 			jsr go_to_previous_slide
 			jsr display_current_slide
+			; TODO: skip scroll when speed is 0
 			lda #$ff ; screen width
 			sta scroll_x
-			jsr prepare_next_slide_nametable
-			jsr ppu_update
 			jsr scroll_next
+			jsr ppu_update
 			jmp mainloop
 	.endproc
 
@@ -262,8 +269,9 @@ SPACE = ' '
 	.proc setup_first_slide
 		lda #0
 		sta slide
+		sta current_nametable
 		assign_16i character_pointer, text
-		assign_16i character_pointer_next, text
+		assign_16i temp_pointer, text
 		set_padding
 		jsr set_attributes
 		rts 
@@ -395,105 +403,13 @@ SPACE = ' '
 			rts 
 	.endproc
 
-	.proc find_next_slide_start
-		ldy #0
-		lda (character_pointer), y
-		beq reset_slides
-		
-		lda character_pointer
-		sta character_pointer_next
-		lda character_pointer + 1
-		sta character_pointer_next + 1
-
-		ldx #0
-		jmp skip_increment 							; character_pointer points at the end of previous slide so don't increment the first time
-		find_next_slide: 							; proceed if they are equal
-			increment_16i_pointer character_pointer_next
-			skip_increment:
-			lda (character_pointer_next), y 		; y is 0 so just the character the pointer points to
-			beq reset_slides 						; if it's 0, go back to first slide since there's a 0 after the content
-			cmp #ESCAPE_CHAR
-			bne find_next_slide
-				ldy #1
-				lda (character_pointer_next), y 	; check the next character
-				ldy #0
-				cmp #SLIDE_SEPERATOR
-				bne find_next_slide
-
-		add16i character_pointer_next,2 				; skip over \s
-		lda (character_pointer_next), y
-		cmp #CARRIAGE_RETURN
-		bne skip_CR_skip
-			increment_16i_pointer character_pointer_next 	; skip over CR
-		skip_CR_skip:
-		increment_16i_pointer character_pointer_next 		; skip over newline
-		jmp exit
-
-		reset_slides:
-			assign_16i character_pointer_next, text 		; set current slide pointer to the first slide
-
-		exit:
-			rts 
-	.endproc
-
-	.proc prepare_next_slide_nametable
-		jsr find_next_slide_start
-		set_padding
-		jsr set_attributes_next
-		jsr display_next_slide_nt1
-		rts 
-	.endproc
-
-	.proc find_previous_slide_start
-		lda slide
-		cmp #0							; if this is the first slide, loop all the way to the end
-		
-		lda character_pointer
-		sta character_pointer_next
-		lda character_pointer + 1
-		sta character_pointer_next + 1
-		
-		bne not_first_slide				; skip if slide index != 0
-			ldy #1							; y will serve as slide index
-			slide_loop1:					; loop to reach last slide:
-				save_registers					
-				jsr find_next_slide_start			
-				restore_regsiters
-				iny 						; since we are on the next slide, inc y
-				cpy number_of_slides		; compare to total amount of slides
-				bne slide_loop1				; not end? go back
-				jmp exit					; is end -> exit
-		not_first_slide:
-		save_registers
-		jsr setup_first_slide
-		restore_regsiters
-		sec 
-		sbc #1
-		slide_loop2:
-			cmp #0
-			beq exit
-			pha 
-			jsr find_next_slide_start
-			pla 
-			sec 
-			sbc #1
-			jmp slide_loop2
-		exit:
-			rts 
-	.endproc
-
-	.proc prepare_previous_slide_nametable
-		jsr find_previous_slide_start
-		set_padding
-		jsr set_attributes_previous
-		jsr display_previous_slide_nt0
-		rts 
-	.endproc
-
 	.proc display_current_slide
+		set_padding
+		jsr set_attributes
+		assign16i_pointer temp_pointer, character_pointer
 		ldy #0
 		text_loop:
-			lda (character_pointer),y 	; get current text byte (2 bytes address)
+			lda (temp_pointer),y 	; get current text byte (2 bytes address)
 			beq exit 					; if it's 0, exit
 			cmp #TAB
 			bne skip_tab
@@ -507,8 +423,6 @@ SPACE = ' '
 				cmp #MAX_HEIGHT
 				beq exit
 				set_padding_left
-				ldx #0
-				stx current_nametable
 				jsr vram_set_address_text
 				jmp skip_write
 			skip_newline:
@@ -517,151 +431,34 @@ SPACE = ' '
 			cmp #ESCAPE_CHAR					; found '\' do this:
 			bne skip_escape 					; didn't find '\' then skip
 				iny 							; increase y offset
-				lda (character_pointer),y 		; get next character
+				lda (temp_pointer),y 		; get next character
 				dey 							; decrease y offset
 				cmp #SLIDE_SEPERATOR 			; found 's' ?
 				beq exit 						; exit this procedure
 				cmp #TAB_CHAR 					; found 't' ?
 				bne skip_escape 				; skip writing tab if there is none
 					jsr write_tab
-					increment_16i_pointer character_pointer
+					increment_16i_pointer temp_pointer
 					jmp skip_write
 			skip_escape:
 				sta PPU_VRAM_IO 	; write the character to the ppu io register
 				inc text_column
 				lda text_column
+				clc 
 				cmp #MAX_WIDTH
-				bne skip_write
+				bcc skip_write
 					inc text_line 		; increment text line
 					lda text_line
 					cmp #MAX_HEIGHT
-					beq exit
+					bcs exit
 					set_padding_left
-					ldx #0
-					stx current_nametable
 					jsr vram_set_address_text
 			skip_write:
-			increment_16i_pointer character_pointer
+			increment_16i_pointer temp_pointer
 			jmp text_loop 				; loop again
 		exit:
-			jsr display_slide_number0 	; display the slide idx
+			;jsr display_slide_number0 	; display the slide idx
 			rts 						; return from subroutine
-	.endproc
-
-	.proc display_next_slide_nt1
-		ldy #0
-		text_loop:
-			lda (character_pointer_next),y 	; get current text byte (2 bytes address)
-			beq exit 						; if it's 0, exit
-			cmp #TAB
-			bne skip_tab
-				jsr write_tab
-				jmp skip_write
-			skip_tab:
-			cmp #NEWLINE 			; check if it's a newline character
-			bne skip_newline 		; if it isn't, branch
-				inc text_line 		; increment text line
-				lda text_line
-				cmp #MAX_HEIGHT
-				beq exit
-				set_padding_left
-				ldx #1
-				stx current_nametable
-				jsr vram_set_address_text
-				jmp skip_write
-			skip_newline:
-			cmp #CARRIAGE_RETURN
-			beq skip_write
-			cmp #ESCAPE_CHAR					; found '\' do this:
-			bne skip_escape 					; didn't find '\' then skip
-				iny 							; increase y offset
-				lda (character_pointer_next),y 	; get next character
-				dey 							; decrease y offset
-				cmp #SLIDE_SEPERATOR 			; found 's' ?
-				beq exit 						; exit this procedure
-				cmp #TAB_CHAR 					; found 't' ?
-				bne skip_escape 				; skip writing tab if there is none
-					jsr write_tab
-					increment_16i_pointer character_pointer_next
-					jmp skip_write
-			skip_escape:
-				sta PPU_VRAM_IO 	; write the character to the ppu io register
-				inc text_column
-				lda text_column
-				cmp #MAX_WIDTH
-				bne skip_write
-					inc text_line 		; increment text line
-					lda text_line
-					cmp #MAX_HEIGHT
-					beq exit
-					set_padding_left
-					ldx #1
-					stx current_nametable	
-					jsr vram_set_address_text
-			skip_write:
-			increment_16i_pointer character_pointer_next
-			jmp text_loop 			; loop again
-		exit:
-			jsr display_slide_number1
-			rts 					; return from subroutine
-	.endproc
-
-	.proc display_previous_slide_nt0
-		ldy #0
-		text_loop:
-			lda (character_pointer_next),y 	; get current text byte (2 bytes address)
-			beq exit 						; if it's 0, exit
-			cmp #TAB
-			bne skip_tab
-				jsr write_tab
-				jmp skip_write
-			skip_tab:
-			cmp #NEWLINE 			; check if it's a newline character
-			bne skip_newline 		; if it isn't, branch
-				inc text_line 		; increment text line
-				lda text_line
-				cmp #MAX_HEIGHT
-				beq exit
-				set_padding_left
-				ldx #1
-				stx current_nametable
-				jsr vram_set_address_text
-				jmp skip_write
-			skip_newline:
-			cmp #CARRIAGE_RETURN
-			beq skip_write
-			cmp #ESCAPE_CHAR					; found '\' do this:
-			bne skip_escape 					; didn't find '\' then skip
-				iny 							; increase y offset
-				lda (character_pointer_next),y 	; get next character
-				dey 							; decrease y offset
-				cmp #SLIDE_SEPERATOR 			; found 's' ?
-				beq exit 						; exit this procedure
-				cmp #TAB_CHAR 					; found 't' ?
-				bne skip_escape 				; skip writing tab if there is none
-					jsr write_tab
-					increment_16i_pointer character_pointer_next
-					jmp skip_write
-			skip_escape:
-				sta PPU_VRAM_IO 	; write the character to the ppu io register
-				inc text_column
-				lda text_column
-				cmp #MAX_WIDTH
-				bne skip_write
-					inc text_line 		; increment text line
-					lda text_line
-					cmp #MAX_HEIGHT
-					beq exit
-					set_padding_left
-					ldx #1
-					stx current_nametable
-					jsr vram_set_address_text
-			skip_write:
-			increment_16i_pointer character_pointer_next
-			jmp text_loop 			; loop again
-		exit:
-			jsr display_slide_number1
-			rts 					; return from subroutine
 	.endproc
 
 	.proc write_tab
@@ -677,10 +474,17 @@ SPACE = ' '
 
 	.proc set_attributes
 		save_registers
+		lda current_nametable			; x = 0 for current slide, x = 1 for next slide
+		asl 
+		asl 
+		adc #>ATTRIBUTE_TABLE_0_ADDRESS
+		sta PPU_VRAM_ADDRESS
+		lda #$c0 
+		sta PPU_VRAM_ADDRESS
+
 		ldy slide
 		lda palettes, y
 		sta current_palette
-		vram_set_address (ATTRIBUTE_TABLE_0_ADDRESS)
 		ora current_palette
 		asl 
 		asl 
@@ -698,84 +502,6 @@ SPACE = ' '
 			cpy #$40
 			bne @loop
 
-		ldx #0
-		stx current_nametable
-		jsr vram_set_address_text 	; set the vram address
-		restore_regsiters
-		rts 
-	.endproc
-
-	.proc set_attributes_next
-		save_registers
-		lda slide
-		clc
-		adc #1
-		cmp number_of_slides
-		bcc @no_wrap
-			lda #0
-		@no_wrap:
-			tay
-		lda palettes, y
-		sta current_palette
-		vram_set_address (ATTRIBUTE_TABLE_1_ADDRESS)
-		ora current_palette
-		asl 
-		asl 
-		ora current_palette
-		asl 
-		asl 
-		ora current_palette
-		asl 
-		asl 
-		ora current_palette
-		ldy #0
-		@loop: 				; write all attributes to the vram
-			sta PPU_VRAM_IO
-			iny 
-			cpy #$40
-			bne @loop
-
-		ldx #1
-		stx current_nametable
-		jsr vram_set_address_text 	; set the vram address
-		restore_regsiters
-		rts 
-	.endproc
-
-	.proc set_attributes_previous
-		save_registers
-		lda slide
-		sec 
-		sbc #1
-		cmp #$ff
-		bne @no_wrap
-			lda number_of_slides
-			sec 
-			sbc #1
-		@no_wrap:
-			tay
-		lda palettes, y
-		sta current_palette
-		vram_set_address (ATTRIBUTE_TABLE_1_ADDRESS)
-		ora current_palette
-		asl 
-		asl 
-		ora current_palette
-		asl 
-		asl 
-		ora current_palette
-		asl 
-		asl 
-		ora current_palette
-		ldy #0
-		@loop: 				; write all attributes to the vram
-			sta PPU_VRAM_IO
-			iny 
-			cpy #$40
-			bne @loop
-
-		ldx #1
-		stx current_nametable
 		jsr vram_set_address_text 	; set the vram address
 		restore_regsiters
 		rts 
