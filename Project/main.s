@@ -400,6 +400,11 @@ SPACE = ' '
 		lda (character_pointer), y
 		beq reset_slides
 		
+		lda character_pointer
+		sta character_pointer_next
+		lda character_pointer + 1
+		sta character_pointer_next + 1
+
 		ldx #0
 		jmp skip_increment 							; character_pointer points at the end of previous slide so don't increment the first time
 		find_next_slide: 							; proceed if they are equal
