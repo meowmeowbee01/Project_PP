@@ -31,5 +31,10 @@
 	IMAGE_OPERATOR = 'i' ; unused
 
 
-; unused
-images: .byte 2, 2 		; define the dimensions of the images (first width than height)
+; images info (unused)
+	images_dimensions: .byte 2, 2 		; define the dimensions of the images (first width than height)
+	images_indices: .byte 0
+	images_slides: .byte 0
+	images_positions: .byte 200, 100
+	images_palettes: .byte 0
+	images_count: .byte 1
