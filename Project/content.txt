@@ -8,4 +8,5 @@ According to all known laws of aviation, there is no way that a bee should be ab
 next slide should be empty\s
 \s
 previous slide should be empty\s
+ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~\s
 final slide

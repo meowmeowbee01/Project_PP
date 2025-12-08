@@ -430,16 +430,19 @@ SPACE = ' '
 			beq skip_write
 			cmp #ESCAPE_CHAR					; found '\' do this:
 			bne skip_escape 					; didn't find '\' then skip
+				sta temp
 				iny 							; increase y offset
-				lda (temp_pointer),y 		; get next character
+				lda (temp_pointer),y 			; get next character
 				dey 							; decrease y offset
 				cmp #SLIDE_SEPERATOR 			; found 's' ?
 				beq exit 						; exit this procedure
 				cmp #TAB_CHAR 					; found 't' ?
-				bne skip_escape 				; skip writing tab if there is none
+				bne skip_tab_escape 				; skip writing tab if there is none
 					jsr write_tab
 					increment_16i_pointer temp_pointer
 					jmp skip_write
+				skip_tab_escape:
+				lda temp
 			skip_escape:
 				sta PPU_VRAM_IO 	; write the character to the ppu io register
 				inc text_column
