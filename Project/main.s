@@ -45,6 +45,7 @@ SPACE = ' '
 
 .segment "CODE" 	; main code segment for the program
 	.include "settings.s"
+	.include "audio.s"
 	SLIDE_INDEX_ADDR0 = NAME_TABLE_0_ADDRESS + (INDEX_Y_POS * $20) + INDEX_X_POS
 	SLIDE_INDEX_ADDR1 = NAME_TABLE_1_ADDRESS + (INDEX_Y_POS * $20) + INDEX_X_POS
 	MAX_WIDTH = $20 - PADDING_RIGHT
@@ -118,6 +119,8 @@ SPACE = ' '
 
 		jsr ppu_update
 
+		jsr audio_init						; <--- THIS IS UPPOSED TO BE THE ONLY PLACE WHERE audio_init is called
+
 		jmp mainloop
 	.endproc
 
@@ -149,6 +152,8 @@ SPACE = ' '
 		lda ppu_ctl1
 		sta PPU_MASK
 
+		jsr audio_update				; <---- PRETTY SELF EXPLANATORY
+
 		; flag PPU update complete
 		ldx #0
 		stx nmi_ready
@@ -158,6 +163,7 @@ SPACE = ' '
 	.endproc
 
 	.proc mainloop
+		;jsr audio_init					; <---- THIS SHOULD NOT BE HERE BUT IT'S THE ONLY WAY TO HAVE AUDIO "WORKINH"
 		lda remaining_input_cooldown 	; keep looping till remaining input cooldown is 0
 		bne mainloop
 		jsr gamepad_poll 				; keep looping till there is an input
@@ -172,6 +178,7 @@ SPACE = ' '
 		bne next_slide
 		jmp mainloop
 		next_slide:
+			jsr audio_play_next 			; <---- PRETTY SELF EXPLANATORY
 			lda #INPUT_COOLDOWN 			; set remaining input cooldown
 			sta remaining_input_cooldown
 			jsr ppu_off
@@ -193,6 +200,7 @@ SPACE = ' '
 			jsr ppu_update
 			jmp mainloop
 		prev_slide:
+			jsr audio_play_prev				; <---- PRETTY SELF EXPLANATORY
 			lda #INPUT_COOLDOWN 			; set remaining input cooldown
 			sta remaining_input_cooldown
 			jsr ppu_off
