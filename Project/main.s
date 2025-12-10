@@ -115,7 +115,6 @@ SPACE = ' '
 		jsr setup_first_slide
 		jsr set_number_of_slides
 		jsr display_current_slide
-		;jsr prepare_next_slide_nametable
 
 		jsr ppu_update
 
@@ -163,7 +162,6 @@ SPACE = ' '
 	.endproc
 
 	.proc mainloop
-		;jsr audio_init					; <---- THIS SHOULD NOT BE HERE BUT IT'S THE ONLY WAY TO HAVE AUDIO "WORKINH"
 		lda remaining_input_cooldown 	; keep looping till remaining input cooldown is 0
 		bne mainloop
 		jsr gamepad_poll 				; keep looping till there is an input

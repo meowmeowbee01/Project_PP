@@ -10,28 +10,21 @@
 	boop_timer: .res 1
 
 .segment "CODE"
-	.proc audio_init 			; pretty self explanitory no?
+	.proc audio_init
 		; enable pulse1, pulse2, triangle, noise (DMC off)
 		lda #%00001111
-		;sta APU_CLOCK 			; $4015
-		sta $4015
+		sta APU_CLOCK
 
 		; disable DMC IRQ
 		lda #0
-		;sta APU_DM_CONTROL 	; $4010
-		sta $4010
+		sta APU_DM_CONTROL
 
-		; set up pulse 1: sweep off, long length, silent
-		lda #0
-		sta $4001 				; disable sweep
-		lda #%11111000 			; lda #f8 -> upper timer bits(0-2) -> 0
-		sta $4003 				; long length counter, hi period bits = 0
 		lda #0
 		sta $4000 				; volume 0 = mute
 
 		lda #0
 		sta boop_timer
-		rts
+		rts 
 	.endproc
 
 	.proc audio_update
@@ -43,7 +36,7 @@
 				lda #0
 				sta $4000
 		done:
-		rts 
+			rts 
 	.endproc
 
 	.proc audio_play_next 		; high-pitch boop
@@ -56,6 +49,12 @@
 		; bits: 7–6 duty, 5 loop env, 4 const vol, 3–0 volume
 		lda #%01011010 			; duty=01, const, vol=10
 		sta $4000
+
+		; set up pulse 1: sweep off, long length, silent
+		lda #0
+		sta $4001 				; disable sweep
+		lda #%11111000 			; lda #f8 -> upper timer bits(0-2) -> 0
+		sta $4003 				; long length counter, hi period bits = 0
 
 		lda #$64 				; low period -> higher pitch (=100)
 		sta $4002 				; fine period bits (hi bits stay 0 from init)
@@ -70,6 +69,12 @@
 
 		lda #%01011010 			; same envelope, same channel
 		sta $4000
+
+		; set up pulse 1: sweep off, long length, silent
+		lda #0
+		sta $4001 				; disable sweep
+		lda #%11111000 			; lda #f8 -> upper timer bits(0-2) -> 0
+		sta $4003 				; long length counter, hi period bits = 0
 
 		lda #$b4 				; bigger period -> lower pitch (=180)
 		sta $4002
