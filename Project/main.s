@@ -461,6 +461,7 @@ SPACE = ' '
 		lda #SPACE 					; write a space
 		@tab_writing_loop: 			; do enough spaces for the tab
 			sta PPU_VRAM_IO
+			inc text_column
 			inx 					; increment counter
 			cpx #TAB_WIDTH 			; compare counter to tab width
 			bne @tab_writing_loop 	; if we haven't done enough spaces, do it agains
