@@ -2,6 +2,8 @@
 	INPUT_COOLDOWN = 15 		; frames
 
 ; slide settings
+	; sound on and off
+		SOUND_ON = 1			;1 if sound on, 0 if sound off
 	; slide transition animation
 		SCROLL_SPEED = 5
 

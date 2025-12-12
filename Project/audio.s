@@ -40,6 +40,8 @@
 	.endproc
 
 	.proc audio_play_next 		; high-pitch boop
+		lda SOUND_ON
+		beq skip
 		;save_registers
 		lda #$1e 				; 30 frames
 		sta boop_timer 			; ~0.5 s at 60 FPS
@@ -59,10 +61,13 @@
 		lda #$64 				; low period -> higher pitch (=100)
 		sta $4002 				; fine period bits (hi bits stay 0 from init)
 		;restore_regsiters
-		rts 
+		skip:
+			rts 
 	.endproc
 
 	.proc audio_play_prev 		; low-pitch boop
+		lda SOUND_ON
+		beq skip
 		;save_registers
 		lda #$1e 				; 30 frames
 		sta boop_timer
@@ -79,5 +84,6 @@
 		lda #$b4 				; bigger period -> lower pitch (=180)
 		sta $4002
 		;restore_regsiters
-		rts 
+		skip:
+			rts 
 	.endproc
