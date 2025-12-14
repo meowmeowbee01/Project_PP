@@ -24,7 +24,7 @@
 
 	; colors
 		; 0, 1, 2, 3 = red, green, blue, white
-		palettes: .byte 0,1,2,3,0,1,2,3 	; putting less indices than slides results in UB (putting more will correctly be ignored)
+		palettes: .byte 2,3,0,1,2,3,0,1,2,3,0,1 	; putting less indices than slides results in UB (putting more will correctly be ignored)
 
 ; escape characters
 	ESCAPE_CHAR = '\'

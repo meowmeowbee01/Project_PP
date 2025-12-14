@@ -27,7 +27,7 @@
 by arno, yannick, 
 dan, ismail and liam
 \s
-timeline step 1
+|-o--------------->
 
 
 
@@ -35,10 +35,11 @@ the initial commit:
 
 
 
-	- a readme file
-
 
 	- the vscode template
+	(by insert_into_name;)
+
+	- changes to tooling
 
 
 
@@ -47,7 +48,7 @@ the initial commit:
 
 
 \s
-timeline step 2
+|---o------------->
 
 
 
@@ -63,7 +64,7 @@ learning
 
 	- learning how to code
 \s
-timeline step 3
+|-----o----------->
 
 
 
@@ -71,15 +72,12 @@ starting the actual project
 
 
 
-    - weird at first
-
-
 	- started from demo
 
 
 	- gradually made changes
 \s
-timeline step 4
+|-------o--------->
 
 
 
@@ -87,53 +85,128 @@ first major milestone
 
 
 
-    - display slides
+    - displaying text
 
 
-	- ascii from file
+	- ascii encoded
 
 
-	- tiles on ascii value
-
-
-	- 256 characters max
+	- very limited:
+		- 255 characters max
+		- 1 slide
+		- no newlines
 \s
-merry        /\     christmas!
-            <  >
-             \/
-             /\
-            /  \
-           /++++\
-          /  ()  \
-          /      \
-         /~`~`~`~`\
-        /  ()  ()  \
-        /          \
-       /*&*&*&*&*&*&\
-      /  ()  ()  ()  \
-      /              \
-     /++++++++++++++++\
-    /  ()  ()  ()  ()  \
-    /                  \
-   /~`~`~`~`~`~`~`~`~`~`\
-  /  ()  ()  ()  ()  ()  \
-  /*&*&*&*&*&*&*&*&*&*&*&\
- /                        \
-/,.,.,.,.,.,.,.,.,.,.,.,.,.\
-           |   |
-          |`````|
-          \_____/
+|---------o------->
+
+
+
+progress
+
+
+
+    - colors
+
+
+	- newline character
+
+
+	- new page/slide character
+	(max 255 characters
+	for whole presentation)
+
+
+	- controller input
+
+	
+	- first slide from file
 \s
-PROJECT_PP
+|-----------o----->
+
+
+- light gun input
+
+
+- settings.s
+
+
+- tab support
+
+
+- \\s escape sequence for slide seperator
+
+
+- left and top padding
+
+
+- 65,535 characters for whole presentation
+
+
+- more than 8 lines per slide
+
+
+- going back to previous slide
+\s
+|-------------o--->
+
+- \\t escape sequence for tab
+
+
+- seamless crlf & lf & mixed
+
+
+- 256+ characters per slide
+
+
+- scrolling animation between slides
+(configurable speed in
+settings.s)
+
+
+- slide index indicator
+(configurable postition in
+settings.s)
+
+
+- double digits slide index
+\s
+|---------------o->
+
+- skipable animation
+
+
+- off-screen content for a slide is ignored
+(instead of writing to other memory)
+
+
+- forced newlines for long lines
+
+
+- \\\\ escape sequence for inserting a "\\"
+
+
+- sound effects
+\s
+
 
 
 
 showcase!
 
-all available characters:
+all printable characters:
 
- !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
- \s
+ !"#$%&'()*+,-./
+0123456789:;<=>?
+@ABCDEFGHIJKLMNO
+PQRSTUVWXYZ[\]^_
+`abcdefghijklmno
+pqrstuvwxyz{|}~
+
+non printable: newline, tab
+escape sequences:
+	- \\s: slide seperator
+	- \\t: tab
+	- \\\\: \
+\s
 
 
 
@@ -164,3 +237,29 @@ all available characters:
 
 by arno, yannick, 
 dan, ismail and liam
+\s
+merry        /\     christmas!
+            <  >
+             \/
+             /\
+            /  \
+           /++++\
+          /  ()  \
+          /      \
+         /~`~`~`~`\
+        /  ()  ()  \
+        /          \
+       /*&*&*&*&*&*&\
+      /  ()  ()  ()  \
+      /              \
+     /++++++++++++++++\
+    /  ()  ()  ()  ()  \
+    /                  \
+   /~`~`~`~`~`~`~`~`~`~`\
+  /  ()  ()  ()  ()  ()  \
+  /*&*&*&*&*&*&*&*&*&*&*&\
+ /                        \
+/,.,.,.,.,.,.,.,.,.,.,.,.,.\
+           |   |
+          |`````|
+          \_____/

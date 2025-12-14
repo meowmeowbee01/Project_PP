@@ -4,7 +4,7 @@ CARRIAGE_RETURN = $d			; symbol for carriage return in text
 TAB = '	'						; symbol for tab in text
 SPACE = ' '						; symbol for space in text
 
-.segment "HEADER"		
+.segment "HEADER"
 	INES_MAPPER = 0				; 0 = NROM
 	INES_MIRROR = 1				; 0 = horizontal mirroring, 1 = vertical mirroring
 	INES_SRAM   = 0				; 1 = battery backed SRAM at $6000-7FFF
@@ -12,7 +12,7 @@ SPACE = ' '						; symbol for space in text
 	.byte "NES", $1a			; iNES header identifier
 	.byte $02					; 2x 16KB PRG code
 	.byte $01					; 1x  8KB CHR data
-	.byte INES_MIRROR | (INES_SRAM << 1) | ((INES_MAPPER & $f) << $4)	; mirriring, sram usage and lower mapper bits
+	.byte INES_MIRROR | (INES_SRAM << 1) | ((INES_MAPPER & $f) << $4)	; mirroring, sram usage and lower mapper bits
 	.byte (INES_MAPPER & %11110000)										; upper mapper bits
 	.byte 0, 0, 0, 0, 0, 0, 0, 0	; padding
 
