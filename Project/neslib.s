@@ -113,56 +113,56 @@ ATTRIBUTE_TABLE_1_ADDRESS 	= $27c0
 	.endproc
 
 	.proc clear_nametable
-		lda #0
-		ldy #$1e
+		lda #0					; a= 0  to clear nt
+		ldy #$1e				; y = 30(rows vibile)
 		rowloop: 				; empty nametable
-			ldx #$20
+			ldx #$20			; x=32 columns per row
 			columnloop: 
 				sta PPU_VRAM_IO ; clear current byte
-				dex 
+				dex 			; dex columns
 				bne columnloop 	; loop until x is 0
-			dey 
+			dey 				; dec rows
 			bne rowloop 		; loop until y is 0
 
-		ldx #$40
+		ldx #$40				; x=64 bytes for attribute table
 		loop: 					; empty attribute table
-			sta PPU_VRAM_IO
-			dex 
+			sta PPU_VRAM_IO		; write attriibute byte
+			dex 				; decrement counter
 			bne loop 			; loop until x is 0 
-		rts 
+		rts 					; return to subroutine
 	.endproc
 
 	.proc gamepad_poll
 		lda #1 				; this tells the gamepad to send over the info
-		sta JOYPAD1
-		lda #0
-		sta JOYPAD1
+		sta JOYPAD1			; store joypad1
+		lda #0				; load 0 to clear signal
+		sta JOYPAD1			; clear signal1
 
 		ldx #$8 			; loops 8 times to get all 8 bits of info
 		loop:
 			pha 			; pushes current bit onto the stack
-			lda JOYPAD1
+			lda JOYPAD1		; load joypad 1
 
 			and #%00000011 	; combines low 2 bits and stores it in carry bit
-			cmp #%00000001  
+			cmp #%00000001  ; check if set
 			pla 			; gets the value from the stack
 
 			ror 			; rotates the carry bit in the current value (from the right)
-			dex 
-			bne loop
-		sta gamepad
-		rts 
+			dex 			; dec counter
+			bne loop		; loop untill all buttons read
+		sta gamepad			; store button presses
+		rts 				; return from subroutine
 	.endproc
 
 	.proc clear_sprites
-		lda #$ff
-		ldx #0
+		lda #$ff			; load screen widdth
+		ldx #0				; load 0
 		clear_oam:
-			sta oam,x
-			inx 
-			inx 
-			inx 
-			inx 
-			bne clear_oam
-		rts 
+			sta oam,x		; set sprite u pos off screen
+			inx 			; skip others settings
+			inx  			; skip others settings
+			inx  			; skip others settings
+			inx  			; skip others settings
+			bne clear_oam	; loop untill all bytes processed
+		rts 				; return to subroutine
 	.endproc
