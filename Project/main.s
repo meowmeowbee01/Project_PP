@@ -189,7 +189,6 @@ SPACE = ' '						; symbol for space in text
 				jsr scroll_next				; do scrolling
 			skip_scroll_forward:			; skip scrolling 
 			jsr ppu_off						; ppu off for safety
-			; TODO: take less time between ppu_off and ppu_update to mitigate flicker
 			clear_nametable(NAME_TABLE_0_ADDRESS)	; clear nametable 0
 			set_nametable_0							; set nametable 0
 			jsr display_current_slide				; draw current slide (nametable 0)
@@ -202,7 +201,6 @@ SPACE = ' '						; symbol for space in text
 			lda #INPUT_COOLDOWN 			; set remaining input cooldown
 			sta remaining_input_cooldown	; store cooldown into input cooldown
 			jsr ppu_off						; turn of ppu for safety
-			; TODO: take less time between ppu_off and ppu_update to mitigate flicker
 			clear_nametable(NAME_TABLE_0_ADDRESS)	; clear nametable 0
 			clear_nametable(NAME_TABLE_1_ADDRESS)	; clear nametable 1
 			set_nametable_1							; set nametable 1
@@ -210,7 +208,6 @@ SPACE = ' '						; symbol for space in text
 			set_nametable_0				; leave this here (it needs to be 0 for the go to previous slide subroutine)
 			jsr go_to_previous_slide				; update slide index
 			jsr display_current_slide				; draw prev slide into nametable 0
-			; TODO: skip scroll when speed is 0
 			lda #$ff ; screen width
 			sta scroll_x	; scroll to nametable 1
 			jsr scroll_next ; do scroll 
@@ -504,35 +501,35 @@ SPACE = ' '						; symbol for space in text
 	.endproc
 
 	.proc vram_set_address_text
-		pha 	;save a
+		pha 	; save a
 		lda current_nametable			; x = 0 for current slide, x = 1 for next slide
-		asl 	;shift left twice
-		asl 	;^^
-		sta temp	;store nametable offset temp
+		asl 	; shift left twice
+		asl 	; ^^
+		sta temp	; store nametable offset temp
 		lda PPU_STATUS 		; load ppu status
 		lda text_line 		; load the text line
-		lsr 	;shift right thrice
-		lsr 	;^^
-		lsr 	;^^
-		clc 	;clear carry for addition
-		adc #>NAME_TABLE_0_ADDRESS	;add high byte nametable 0
-		adc temp					;add nametable  offset
+		lsr 	; shift right thrice
+		lsr 	; ^^
+		lsr 	; ^^
+		clc 	; clear carry for addition
+		adc #>NAME_TABLE_0_ADDRESS	; add high byte nametable 0
+		adc temp					; add nametable  offset
 		sta PPU_VRAM_ADDRESS		; write high byte
-		lda text_line		;load reload text line
+		lda text_line		; load reload text line
 		asl 				; multiply it with 32 (to get the y coord)
-		asl 				;^^
-		asl  				;^^
-		asl  				;^^
-		asl  				;^^
-		clc 				;clear carry for addition
-		adc text_column		;add column 
+		asl 				; ^^
+		asl  				; ^^
+		asl  				; ^^
+		asl  				; ^^
+		clc 				; clear carry for addition
+		adc text_column		; add column 
 		sta PPU_VRAM_ADDRESS		; write low byte
-		pla 	;restore a
-		rts 	;returb to subroutine
+		pla 	; restore a
+		rts 	; return to subroutine
 	.endproc
 
 	.proc display_slide_number 					; draws in bottom-right corner of the screen
-		save_registers					;save registers
+		save_registers					; save registers
 		lda current_nametable					; load the current name_table
 		bne name_table_1						; if it is not 0, go to the section for nametable 1
 			vram_set_address (SLIDE_INDEX_ADDR0) 	; set VRAM address to bottom-right of nametable 0
@@ -541,52 +538,52 @@ SPACE = ' '						; symbol for space in text
 			vram_set_address (SLIDE_INDEX_ADDR1) ; set the vram address to the bottom right of nametable 1
 		index_set:
 		lda slide 						; load current slide idx
-		clc 							;clear carry for addition
+		clc 							; clear carry for addition
 		adc #1 							; make it 1 based
 		jsr print_two_digits 			; writes 2 chars (if necessary)
 
-		lda #INDEX_SEPERATOR			;load index sep to a
+		lda #INDEX_SEPERATOR			; load index sep to a
 		sta PPU_VRAM_IO 				; write an index seperator
 
-		lda number_of_slides			;load numbers of slide a
+		lda number_of_slides			; load numbers of slide a
 		jsr print_two_digits 			; writes 2 chars (if necessary)
 
-		restore_regsiters				;restore registers
-		rts 							;return to subroutine
+		restore_regsiters				; restore registers
+		rts 							; return to subroutine
 	.endproc
 
 	.proc print_two_digits
-		cmp #10						;check if total slides 2 digits
+		cmp #10						; check if total slides 2 digits
 		bcc @one_digit 				; if A < 10 -> print single digit
 
 		; ---- two-digit number ----
 		ldy #0 						; tens = 0
 		@tens_loop:
-			cmp #10					;is a less 10
-			bcc @two_digits_ready	;if less, tens calc done
-			sbc #10					;subtract 10
+			cmp #10					; is a less 10
+			bcc @two_digits_ready	; if less, tens calc done
+			sbc #10					; subtract 10
 			iny 					; tens++
-			bne @tens_loop			;repeat till value <10
+			bne @tens_loop			; repeat till value <10
 
 		@two_digits_ready:
 			sta temp 			; store ones (0–9)
 			tya 					; A = tens
-			clc 					;clear carry for add
-			adc #'0'				;tens digit to char
+			clc 					; clear carry for add
+			adc #'0'				; tens digit to char
 			sta PPU_VRAM_IO 		; print tens digit
 
 			lda temp 			; print ones digit
-			clc 				;clear carry for addition
-			adc #'0'			;convert ones digit  to char
-			sta PPU_VRAM_IO		;write digit
-		rts 					;return to subroutine
+			clc 				; clear carry for addition
+			adc #'0'			; convert ones digit  to char
+			sta PPU_VRAM_IO		; write digit
+		rts 					; return to subroutine
 
 		; ---- single-digit number ----
 		@one_digit:
-			clc 		;clear carry for addition
-			adc #'0'	;connvert digit to char
-			sta PPU_VRAM_IO	;draw ppu
-		rts 			;return from subroutine
+			clc 		; clear carry for addition
+			adc #'0'	; connvert digit to char
+			sta PPU_VRAM_IO	; draw ppu
+		rts 			; return from subroutine
 	.endproc
 
 .segment "RODATA"
@@ -595,8 +592,8 @@ SPACE = ' '						; symbol for space in text
 		.byte $0f, $1a, $2a, $29 ; green
 		.byte $0f, $11, $21, $2c ; blue
 		.byte $0f, $30, $10, $00 ; gray
-						; sprite palette
-		.byte $0f, $28, $21, $11
-		.byte $0f, $26, $28, $17
-		.byte $0f, $1b, $2b, $3b
-		.byte $0f, $12, $22, $32
+						; sprite palette (unused)
+		.byte $0f, $28, $21, $11	; unused
+		.byte $0f, $26, $28, $17	; unused
+		.byte $0f, $1b, $2b, $3b	; unused
+		.byte $0f, $12, $22, $32	; unused
