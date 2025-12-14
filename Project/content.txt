@@ -24,83 +24,80 @@
 
 
 
-
-
 by arno, yannick, 
-dan, ismail and liam\s
-PROJECT_PP
+dan, ismail and liam
+\s
+timeline step 1
 
 
 
-the start of project pp:
-
-
-\tbegan with vscode template 
-\t+ book demo
-
-\tsome formatting, comments, 
-\treadability, ...
-
-\ttext functionality from  
-\tbook + text colors
-
-\tnew line characters+
-\tmultiple slides added\s
-PROJECT_PP
+the initial commit:
 
 
 
-first few slides!
+	- a readme file
 
 
-\tcontent.txt added
-
-\ttabs added
-
-\tsettings.s created
-
-\tzapper support!
-
-\tindividual slide colors
-
-\tnew slide key(\\s) \s
-PROJECT_PP
+	- the vscode template
 
 
 
-progress!
+
+            \\(0-0)/
 
 
-\ttop + left padding
-
-\tgoing backwards in slides
-
-\tadded tabs with \\t
-
-\tseamless CRLF support
-\t(and LF)
-
-\t+256 characters per slide
-
-\tscrolling animation added
-
-\tslide index added
-
-\tproper ignore many lines
-
-\tword wrap when max width\s
-PROJECT_PP
+\s
+timeline step 2
 
 
 
-showcase!
-	normal tab
-\t\\t
-    4 spaces :d
+learning
 
-\tadd extra \\ to display like:
-\t\\\\ \s
 
+
+	- following book demo
+
+
+	- understanding hardware
+
+
+	- learning how to code
+\s
+timeline step 3
+
+
+
+starting the actual project
+
+
+
+    - weird at first
+
+
+	- started from demo
+
+
+	- gradually made changes
+\s
+timeline step 4
+
+
+
+first major milestone
+
+
+
+    - display slides
+
+
+	- ascii from file
+
+
+	- tiles on ascii value
+
+
+	- 256 characters max
+\s
 merry        /\     christmas!
             <  >
              \/
@@ -135,7 +132,8 @@ showcase!
 
 all available characters:
 
- !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~\s
+ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+ \s
 
 
 
